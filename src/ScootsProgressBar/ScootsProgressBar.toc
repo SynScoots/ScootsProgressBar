@@ -1,0 +1,14 @@
+## Interface: 30300
+## Title: Scoots Progress Bar
+## Author: Scoots
+## Notes: A configurable display to show a number of different progressive statistics.
+## SavedVariables: SCOOTSPROGRESSBAR_STORAGE
+## Version: 1.0.0
+
+ScootsProgressBar.lua
+ScootsProgressBar-Core.lua
+ScootsProgressBar-Interface.lua
+ScootsProgressBar-Options.lua
+ScootsProgressBar-Options-Interface.lua
+ScootsProgressBar-Utility.lua
+ScootsProgressBar-Lookup.lua
