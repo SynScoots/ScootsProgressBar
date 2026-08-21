@@ -1,4 +1,5 @@
 local lookup = {
+    ['NONE_VAL'] = {},
     ['dungeonChallenges'] = {
         -- Vanilla
         [2437] = {4, false}, -- Ragefire Chasm
@@ -98,16 +99,6 @@ local lookup = {
         [5] = {1, 0.502, 0},
         [6] = {0.902, 0.8, 0.502},
         [7] = {0.902, 0.8, 0.502},
-    },
-    ['reputationStandingMap'] = {
-        [1] = 'hated',
-        [2] = 'hostile',
-        [3] = 'unfriendly',
-        [4] = 'neutral',
-        [5] = 'friendly',
-        [6] = 'honoured',
-        [7] = 'revered',
-        [8] = 'exalted',
     },
     ['bagIdMap'] = {
         [0x13] = 1,

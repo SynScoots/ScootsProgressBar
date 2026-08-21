@@ -3,7 +3,7 @@
 ## Author: Scoots
 ## Notes: A configurable display to show a number of different progressive statistics.
 ## SavedVariables: SCOOTSPROGRESSBAR_STORAGE
-## Version: 1.0.0
+## Version: 1.1.0
 
 ScootsProgressBar.lua
 ScootsProgressBar-Core.lua
@@ -12,3 +12,24 @@ ScootsProgressBar-Options.lua
 ScootsProgressBar-Options-Interface.lua
 ScootsProgressBar-Utility.lua
 ScootsProgressBar-Lookup.lua
+
+Bars\experience.lua
+Bars\reputation.lua
+Bars\equipattune.lua
+Bars\bagattune.lua
+Bars\attunebar.lua
+Bars\charattunes.lua
+Bars\accattunes.lua
+Bars\affixattunes.lua
+Bars\zoneattunes.lua
+Bars\zoneaffixes.lua
+Bars\questtoken.lua
+Bars\currency.lua
+Bars\items.lua
+Bars\dailyattunes.lua
+Bars\instancecap.lua
+Bars\bagspace.lua
+Bars\wintergrasp.lua
+Bars\dungeonchallenge.lua
+Bars\dungeonspeedrun.lua
+Bars\freetimer.lua

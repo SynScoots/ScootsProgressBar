@@ -6,6 +6,14 @@ local utility = ScootsProgressBar.utility
 local lookup = ScootsProgressBar.lookup
 
 interface = {
+    ['applyColoursFunctionMap'] = {},
+    ['barSizeAdjustmentFunctionMap'] = {},
+    ['alterBarCreationFunctionMap'] = {},
+    ['setBarTextureFunctionMap'] = {},
+    ['postCreationPositionTexturesFunctionMap'] = {},
+    ['postUpdatePositionTexturesFunctionMap'] = {},
+    ['tooltipExtraLineCallbacks'] = {},
+    ['mouseInterceptScriptHooks'] = {},
     ['build'] = function()
         if(interface.built ~= nil) then
             return
@@ -20,21 +28,15 @@ interface = {
 		frames.main:SetMovable(true)
         
         frames.cursorIntercept:SetScript('OnMouseUp', function(self, mouseButton)
-            if(mouseButton == 'LeftButton') then
-                if(IsShiftKeyDown() and options.get('freetimer-enabled')) then
-                    core.startTimer()
-                else
+            if(not IsModifierKeyDown()) then
+                if(mouseButton == 'LeftButton') then
                     core.cycleActive()
                     
                     if(options.get('tooltip-display') == 'visible') then
-                        frames.main:GetScript('OnLeave')()
-                        frames.main:GetScript('OnEnter')()
+                        frames.cursorIntercept:GetScript('OnLeave')()
+                        frames.cursorIntercept:GetScript('OnEnter')()
                     end
-                end
-            elseif(mouseButton == 'RightButton') then
-                if(IsShiftKeyDown() and options.get('freetimer-enabled')) then
-                    core.stopTimer()
-                else
+                elseif(mouseButton == 'RightButton') then
                     options.open()
                 end
             end
@@ -67,10 +69,10 @@ interface = {
                 
                 core.attachTooltipInfo()
                 
-                if(utility.isBarValid('freetimer') or utility.getActiveBar() == 'freetimer') then
-                    GameTooltip:AddLine(' ', nil, nil, nil, true)
-                    utility.addTooltipDoubleLine('Shift + left click', 'Start timer')
-                    utility.addTooltipDoubleLine('Shift + right click', 'Stop timer')
+                if(#interface.tooltipExtraLineCallbacks > 0) then
+                    for _, callback in ipairs(interface.tooltipExtraLineCallbacks) do
+                        callback()
+                    end
                 end
                 
                 GameTooltip:AddLine(' ', nil, nil, nil, true)
@@ -97,6 +99,12 @@ interface = {
                 GameTooltip_Hide(self)
             end
 		end)
+        
+        for script, callbackList in pairs(interface.mouseInterceptScriptHooks) do
+            for _, callback in ipairs(callbackList) do
+                frames.cursorIntercept:HookScript(script, callback)
+            end
+        end
         
         frames.overlay = CreateFrame('Frame', 'ScootsProgressBar-Overlay', frames.main)
         frames.overlay:SetAllPoints()
@@ -290,17 +298,13 @@ interface = {
             bar.progress:SetTexture(barTexture, true)
             bar.progress:SetHorizTile(true)
             
-            if(key == 'experience') then
-                bar.pending = bar:CreateTexture(nil, 'BACKGROUND')
-                bar.pending:SetTexture(barTexture, true)
-                bar.pending:SetHorizTile(true)
+            if(interface.alterBarCreationFunctionMap[key] ~= nil) then
+                interface.alterBarCreationFunctionMap[key](bar)
             end
         
             interface.attachBordersToFrame(bar)
             
             bar.text = bar:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
-            bar.text:SetPoint('LEFT', bar, 'LEFT', 0, 2)
-            bar.text:SetPoint('RIGHT', bar, 'RIGHT', 0, -2)
             bar.text:SetJustifyH(options.get('text-alignment'))
             
             local font = bar.text:GetFont()
@@ -589,39 +593,13 @@ interface = {
             return
         end
         
-        local colour
-        local bgColour = options.get(key .. '-background-colour')
-        
-        if(key == 'experience') then
-            if((core.values[key].rested or 0) == 0) then
-                colour = options.get(key .. '-colour')
-            else
-                colour = options.get(key .. '-rested-colour')
-            end
-            
-            local pendingColour = options.get(key .. '-pendingrested-colour')
-            bar.pending:SetVertexColor(pendingColour.r, pendingColour.g, pendingColour.b, pendingColour.a)
-        elseif(key == 'reputation') then
-            if(core.values[key].name == nil) then
-                colour = {['r'] = 0, ['g'] = 0, ['b'] = 0, ['a'] = 0}
-            else
-                colour = options.get(table.concat({key, lookup.reputationStandingMap[core.values[key].standingId], 'colour'}, '-'))
-            end
-        elseif(key == 'wintergrasp' and core.values[key].certain and core.values[key].inProgress) then
-            colour = options.get(key .. '-inprogress-colour')
-        elseif(key == 'dungeonspeedrun') then
-            if(core.values[key].success) then
-                colour = options.get(key .. '-success-colour')
-            elseif(core.values[key].failed) then
-                colour = options.get(key .. '-failed-colour')
-            else
-                colour = options.get(key .. '-colour')
-            end
-        elseif(key == 'freetimer' and core.values[key].percent == 100) then
-            colour = options.get(key .. '-finished-colour')
-        else
-            colour = options.get(key .. '-colour')
+        if(interface.applyColoursFunctionMap[key]) then
+            interface.applyColoursFunctionMap[key](bar)
+            return
         end
+        
+        local colour = options.get(key .. '-colour')
+        local bgColour = options.get(key .. '-background-colour')
         
         bar.background:SetVertexColor(bgColour.r, bgColour.g, bgColour.b, bgColour.a)
         bar.progress:SetVertexColor(colour.r, colour.g, colour.b, colour.a)
@@ -659,48 +637,33 @@ interface = {
         
         local percent = math.min(100, math.max(0, core.values[key].percent or 0))
         local progressWidth = width * (percent / 100)
-        local backgroundWidth
+        local backgroundWidth = width * (1 - (percent / 100))
         
-        if(key == 'experience') then
-            local pendingWidth
-            
-            if((percent + core.values[key].restedPercent) < 100) then
-                pendingWidth = width * ((core.values[key].restedPercent or 0) / 100)
-                backgroundWidth = width * (1 - (((percent or 0) + (core.values[key].restedPercent or 0)) / 100))
-            else
-                pendingWidth = width * (1 - ((percent or 0) / 100))
-                backgroundWidth = 0
-            end
-            
-            if(pendingWidth > 0) then
-                frames.bars[key].pending:Show()
-                frames.bars[key].pending:SetWidth(pendingWidth)
-            else
-                frames.bars[key].pending:Hide()
-            end
-        else
-            backgroundWidth = width * (1 - (percent / 100))
+        if(interface.barSizeAdjustmentFunctionMap[key] ~= nil) then
+            progressWidth, backgroundWidth = interface.barSizeAdjustmentFunctionMap[key](width, percent, progressWidth, backgroundWidth)
         end
         
+        local bar = interface.getBar(key)
+        
         if(progressWidth > 0) then
-            frames.bars[key].progress:Show()
-            frames.bars[key].progress:SetWidth(progressWidth)
+            bar.progress:Show()
+            bar.progress:SetWidth(progressWidth)
         else
-            frames.bars[key].progress:Hide()
+            bar.progress:Hide()
         end
         
         if(backgroundWidth > 0) then
-            frames.bars[key].background:Show()
-            frames.bars[key].background:SetWidth(backgroundWidth)
+            bar.background:Show()
+            bar.background:SetWidth(backgroundWidth)
         else
-            frames.bars[key].background:Hide()
+            bar.background:Hide()
         end
         
-        if(key == 'reputation' and core.values[key].standingId ~= nil) then
-            interface.setBarTexturePositions(key)
+        if(interface.postUpdatePositionTexturesFunctionMap[key] ~= nil) then
+            interface.postUpdatePositionTexturesFunctionMap[key](bar)
         end
         
-        frames.bars[key].text:SetText(core.translateFormat(key))
+        bar.text:SetText(core.translateFormat(key))
     end,
     ['setBarPositions'] = function()
         if(options.get('mode') == 'single') then
@@ -756,8 +719,8 @@ interface = {
 
             bar.progress:SetTexture(barTexture, true)
             
-            if(key == 'experience') then
-                bar.pending:SetTexture(barTexture, true)
+            if(interface.setBarTextureFunctionMap[key] ~= nil) then
+                interface.setBarTextureFunctionMap[key](bar, texture)
             end
         end
     end,
@@ -774,7 +737,7 @@ interface = {
     
         local bar = interface.getBar(key)
         
-        local fromTop, fromBottom, fromLeft, fromRight = 0, 0, 0, 0
+        local fromTop, fromBottom, fromLeft, fromRight, textFromLeft, textFromRight = 0, 0, 0, 0, 2, -2
         
         if(options.get('borders') ~= 'none') then
             if(options.get('mode') == 'single' or options.get('borders') == 'each-bar') then
@@ -793,24 +756,25 @@ interface = {
             if(options.get('side-borders')) then
                 fromLeft = 1.5
                 fromRight = -1.5
+                textFromLeft = 4
+                textFromRight = -4
             end
         end
+        
+        bar.text:SetPoint('TOPLEFT', bar, 'TOPLEFT', textFromLeft, fromTop)
+        bar.text:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', textFromRight, fromBottom)
         
         bar.background:ClearAllPoints()
         bar.progress:ClearAllPoints()
         
-        if(key ~= 'reputation' or core.values[key] == nil or (core.values[key].standingId or 4) > 3) then
+        if(interface.postCreationPositionTexturesFunctionMap[key] ~= nil) then
+            interface.postCreationPositionTexturesFunctionMap[key](bar)
+        else
             bar.background:SetPoint('TOPRIGHT', bar, 'TOPRIGHT', fromRight, fromTop)
             bar.background:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', fromRight, fromBottom)
             
             bar.progress:SetPoint('TOPLEFT', bar, 'TOPLEFT', fromLeft, fromTop)
             bar.progress:SetPoint('BOTTOMLEFT', bar, 'BOTTOMLEFT', fromLeft, fromBottom)
-        else
-            bar.background:SetPoint('TOPLEFT', bar, 'TOPLEFT', fromLeft, fromTop)
-            bar.background:SetPoint('BOTTOMLEFT', bar, 'BOTTOMLEFT', fromLeft, fromBottom)
-            
-            bar.progress:SetPoint('TOPRIGHT', bar, 'TOPRIGHT', fromRight, fromTop)
-            bar.progress:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', fromRight, fromBottom)
         end
     end,
     ['applyHideBlizzard'] = function()
@@ -822,11 +786,19 @@ interface = {
             
             MainMenuExpBar_Update = function() end
             
+            --
+            
             ReputationWatchBar:UnregisterAllEvents()
             ReputationWatchBar:RegisterEvent('CVAR_UPDATE')
             ReputationWatchBar:Hide()
             
             ReputationWatchBar_Update = function() end
+            
+            --
+            
+            MainMenuBarMaxLevelBar:SetScript('OnShow', nil)
+            MainMenuBarMaxLevelBar:SetScript('OnHide', nil)
+            MainMenuBarMaxLevelBar:Hide()
         elseif(lookup.appliedHideBlizzard == true) then
             MainMenuExpBar:RegisterEvent('PLAYER_ENTERING_WORLD')
             MainMenuExpBar:RegisterEvent('PLAYER_XP_UPDATE')
@@ -847,15 +819,21 @@ interface = {
             
             ReputationWatchBar_Update = lookup.blizzardReputationWatchBar_Update
             ReputationWatchBar_Update()
+            
+            --
+            
+            MainMenuBarMaxLevelBar:SetScript('OnShow', UIParent_ManageFramePositions)
+            MainMenuBarMaxLevelBar:SetScript('OnHide', UIParent_ManageFramePositions)
+            
+            if(core.player.level == 80) then
+                MainMenuBarMaxLevelBar:Show()
+            end
         end
     end,
     ['reAnchorStanceBar'] = function()
         if(options.get('re-anchor-stance-bar')) then
             ShapeshiftBarFrame:SetPoint('BOTTOMLEFT', frames.main, 'TOPLEFT', 24, 0)
             PossessBarFrame:SetPoint('BOTTOMLEFT', frames.main, 'TOPLEFT', 24, 0)
-        else
-            ShapeshiftBarFrame:SetPoint('BOTTOMLEFT', MainMenuBar, 'TOPLEFT', 30, 0)
-            PossessBarFrame:SetPoint('BOTTOMLEFT', MainMenuBar, 'TOPLEFT', 30, 0)
         end
     end,
 }

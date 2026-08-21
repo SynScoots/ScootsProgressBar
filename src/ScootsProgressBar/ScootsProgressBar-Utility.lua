@@ -10,11 +10,11 @@ utility = {
     ['serverTime'] = function()
         local nowTime = time()
     
-        if(ScootsProgressBar.timestampOffset == nil or (ScootsProgressBar.timestampOffsetCalcTime + 60) < nowTime) then
+        if(lookup.timestampOffset == nil or (lookup.timestampOffsetCalcTime + 60) < nowTime) then
             local _, serverDay, serverMonth, serverYear = CalendarGetDate()
             local serverHour, serverMinute = GetGameTime()
             
-            ScootsProgressBar.timestampOffset = time({
+            lookup.timestampOffset = time({
                 ['year'] = serverYear,
                 ['month'] = serverMonth,
                 ['day'] = serverDay,
@@ -23,13 +23,13 @@ utility = {
                 ['sec'] = time() % 60,
             }) - nowTime
             
-            ScootsProgressBar.timestampOffsetCalcTime = nowTime
+            lookup.timestampOffsetCalcTime = nowTime
         end
         
-        return nowTime + ScootsProgressBar.timestampOffset
+        return nowTime + lookup.timestampOffset
     end,
     ['clientTime'] = function()
-        return ScootsProgressBar.initialTime + (GetTime() - ScootsProgressBar.initialGetTime)
+        return lookup.initialTime + (GetTime() - lookup.initialGetTime)
     end,
     ['storeCurrentPlayer'] = function()
         if(core.player == nil) then
@@ -150,12 +150,20 @@ utility = {
         return timeUntilNext, inProgress, certain
     end,
     ['isBarValid'] = function(key)
+        if(core.definedBars[key] == nil) then
+            return false
+        end
+        
         local isValid = options.get(key .. '-enabled')
         
-        if(key == 'bagattune' and not ScootsProgressBar.prestiged) then
-            isValid = false
-        elseif(key == 'zoneattunes' and not ScootsProgressBar.itemDBLoaded) then
-            isValid = false
+        if(isValid == false) then
+            return false
+        end
+        
+        if(key == 'bagattune' and not lookup.prestiged) then
+            return false
+        elseif(key == 'zoneattunes' and not lookup.itemDBLoaded) then
+            return false
         end
         
         return isValid
@@ -164,11 +172,17 @@ utility = {
         local activeBar = options.get('active')
     
         if(not utility.isBarValid(activeBar)) then
+            activeBar = nil
+            
             for _, bar in ipairs(core.barOrder) do
                 if(utility.isBarValid(bar.key)) then
                     activeBar = bar.key
                     break
                 end
+            end
+        
+            if(activeBar == nil) then
+                activeBar = core.barOrder[1].key
             end
         end
         
@@ -197,9 +211,9 @@ utility = {
             end
         end
         
-        return options.get('active')
+        return utility.getActiveBar()
     end,
-    ['getValuesForAttuneExp'] = function(containerMap, values)
+    ['setValuesForAttuneExp'] = function(containerMap, key)
         local newCount = 0
         local newPercent = 0
         
@@ -216,7 +230,7 @@ utility = {
                     local isAttuneable = (CanAttuneItemHelper(itemId) or 0) > 0
                     local isBound = Custom_IsItemSoulbound(bagId, bagSlotId)
                     
-                    if((isAttuneable or (isAttuneableAtAll and not isBound and ScootsProgressBar.prestiged)) and attuneProgress < 100) then
+                    if((isAttuneable or (isAttuneableAtAll and not isBound and lookup.prestiged)) and attuneProgress < 100) then
                         newCount = newCount + 1
                         newPercent = newPercent + attuneProgress
                     end
@@ -230,21 +244,21 @@ utility = {
         
         local changed = false
         
-        if(values == nil) then
-            values = {
+        if(core.values[key] == nil) then
+            core.values[key] = {
                 ['itemCount'] = newCount,
                 ['percent'] = newPercent,
             }
             changed = true
         else
-            if(values.itemCount ~= newCount or values.percent ~= newPercent) then
-                values.itemCount = newCount
-                values.percent = newPercent
+            if(core.values[key].itemCount ~= newCount or core.values[key].percent ~= newPercent) then
+                core.values[key].itemCount = newCount
+                core.values[key].percent = newPercent
                 changed = true
             end
         end
         
-        return values, changed
+        return changed
     end,
     ['displayChatMessage'] = function(message, isError)
         if(isError == true) then
@@ -284,54 +298,6 @@ utility = {
             '|r ',
             message,
         }, ''), 1, 1, 1, 1)
-    end,
-    ['getNewCurrencyValue'] = function(itemId)
-        local name, quantity
-        
-        if(itemId == '_GOLD') then
-            quantity = math.floor(GetMoney() / 10000)
-            name = GOLD_AMOUNT:gsub('%s*%%d%s*', '')
-        else
-            for currencyIndex = 1, GetCurrencyListSize() do
-                local _, _, _, _, _, currencyQuantity, _, _, currencyItemId = GetCurrencyListInfo(currencyIndex)
-                
-                if(currencyItemId == itemId) then
-                    quantity = currencyQuantity
-                    name = GetItemInfoCustom(itemId)
-                    break
-                end
-            end
-        end
-        
-        return {
-            ['name'] = name,
-            ['quantity'] = quantity
-        }
-    end,
-    ['getNewItemsValue'] = function(itemId)
-        local name = GetItemInfoCustom(itemId)
-        local quantity = GetCustomGameData(13, itemId) or 0
-    
-        if(options.get('items-include-bank')) then
-            quantity = storage.bank[core.player.guid].items[itemId] or 0
-        end
-    
-        for bagIndex = 0, 4 do
-            for slotIndex = 1, GetContainerNumSlots(bagIndex) do
-                local _, itemCount, _, _, _, _, itemLink = GetContainerItemInfo(bagIndex, slotIndex)
-                
-                if(itemLink) then
-                    if(itemId == CustomExtractItemId(itemLink)) then
-                        quantity = quantity + itemCount
-                    end
-                end
-            end
-        end
-        
-        return {
-            ['name'] = name,
-            ['quantity'] = quantity
-        }
     end,
     ['getItemCount'] = function(findItemId)
         local count = 0
@@ -454,13 +420,17 @@ utility = {
     ['clearOldInstances'] = function()
         local nowTime = utility.serverTime()
         local lockoutTime = nowTime - 3600
+        local currentZoneId = Custom_GetCurrentZone()
     
         for charGuid, charInstances in pairs(storage.instances) do
             if(charInstances.timestamp < lookup.raidResetTime and (charInstances.timestamp + 3600) < nowTime) then
                 charInstances[charGuid] = nil
             else
                 for zoneId, instance in pairs(charInstances.active) do
-                    if((not instance.isRaid and instance.timestamp < lookup.dungeonResetTime) or (instance.isRaid and instance.timestamp < lookup.raidResetTime)) then
+                    if(instance.isLfg and zoneId ~= currentZoneId) then
+                        table.insert(charInstances.reset, instance)
+                        charInstances.active[zoneId] = nil
+                    elseif((not instance.isRaid and instance.timestamp < lookup.dungeonResetTime) or (instance.isRaid and instance.timestamp < lookup.raidResetTime)) then
                         if(instance.timestamp > lockoutTime) then
                             table.insert(charInstances.reset, instance)
                         end

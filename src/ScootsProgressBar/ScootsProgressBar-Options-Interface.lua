@@ -86,13 +86,11 @@ options = {
                 frames.options.menuLinks = {}
                 frames.options.optionPages = {}
                 
-                local optionPageDefinitions = options.getOptionPageDefinitions()
-                
-                for key, data in pairs(optionPageDefinitions) do
+                for key, data in pairs(options.optionPageDefinitions) do
                     local menuLink = options.insertMenuLink({
                         ['framename'] = data.framename .. '-MenuLink',
                         ['parent'] = menuScrollChild,
-                        ['label'] = data.title,
+                        ['label'] = data.title or core.definedBars[key],
                         ['width'] = menuScrollChild:GetWidth() - 32,
                         ['callback'] = function(self)
                             for _, link in pairs(frames.options.menuLinks) do
@@ -114,7 +112,7 @@ options = {
                         ['framename'] = data.framename,
                         ['parent'] = contentHolder,
                         ['width'] = contentHolder:GetWidth() - contentHolder.scrollBar:GetWidth(),
-                        ['title'] = data.title,
+                        ['title'] = core.definedBars[key],
                         ['description'] = data.description,
                         ['callback'] = data.callback,
                         ['special'] = data.special,
@@ -181,11 +179,11 @@ options = {
         height = height + frames.options.menuLinks['data']:GetHeight()
         
         local prevLink = frames.options.menuLinks['data']
-        local optionPageDefinitions = options.getOptionPageDefinitions()
+        local first = true
         
         for index, data in ipairs(core.barOrder) do
-            if(optionPageDefinitions[data.key]) then
-                local offset = ((index == 1) and 10) or 0
+            if(options.optionPageDefinitions[data.key]) then
+                local offset = (first and 10) or 0
                 
                 local menuLink = frames.options.menuLinks[data.key]
                 menuLink:SetPoint('TOPLEFT', prevLink, 'BOTTOMLEFT', 0, 0 - offset)
@@ -193,6 +191,7 @@ options = {
                 
                 prevLink = menuLink
                 height = height + menuLink:GetHeight() + offset
+                first = nil
             end
         end
         
