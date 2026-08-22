@@ -107,6 +107,16 @@ local lookup = {
         [0x16] = 4,
     },
     ['bankContainerSlots'] = {-1, 5, 6, 7, 8, 9, 10},
+    ['strataOrderMap'] = {
+        ['BACKGROUND'] = 1,
+        ['LOW'] = 2,
+        ['MEDIUM'] = 3,
+        ['HIGH'] = 4,
+        ['DIALOG'] = 5,
+        ['FULLSCREEN'] = 6,
+        ['FULLSCREEN_DIALOG'] = 7,
+        ['TOOLTIP'] = 8,
+    },
 }
 
 for funcName, func in pairs(lookup) do

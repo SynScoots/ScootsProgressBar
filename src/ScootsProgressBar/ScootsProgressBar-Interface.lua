@@ -115,48 +115,79 @@ interface = {
         frames.overlay.segments = {}
         
         for _, optionKey in ipairs({
-            'pos-anchor',
-            'strata',
-            'width',
-            'clamp-to-screen',
-            'show-text',
-            'text-size',
-            'non-interactive',
             'borders',
             'overall-opacity',
+            'non-interactive',
+            'clamp-to-screen',
         }) do
             interface.applyVisualGeneralOption(optionKey)
         end
         
+        interface.applyDimensions()
+        interface.applyPositionOptions()
+        interface.applyStrataOptions()
+        
         interface.built = true
     end,
-    ['mainFrameInterfaceLoop'] = function(self)
+    ['dragPositionCallback'] = function(self)
         if(self.isDragging) then
-            local _, _, anchor, x, y = self:GetPoint()
+            local left = self:GetLeft()
+            local bottom = self:GetBottom()
+            local anchor = options.get('pos-anchor')
+            local topWidth = UIParent:GetWidth()
+            local topHeight = UIParent:GetHeight()
+            local width = frames.main:GetWidth()
+            
+            local height = options.get('height')
+            if(core.mode == 'multi' and options.get('multi-mode-sizing') == 'multiply') then
+                height = height * utility.countActiveBars()
+            end
+            
+            local x, y
+            
+            if(anchor == 'TOPLEFT' or anchor == 'LEFT' or anchor == 'BOTTOMLEFT') then
+                x = left
+            elseif(anchor == 'TOP' or anchor == 'CENTER' or anchor == 'BOTTOM') then
+                x = (left + (width / 2)) - (topWidth / 2)
+            elseif(anchor == 'TOPRIGHT' or anchor == 'RIGHT' or anchor == 'BOTTOMRIGHT') then
+                x = 0 - (topWidth - (left + width))
+            end
+            
+            if(anchor == 'TOPLEFT' or anchor == 'TOP' or anchor == 'TOPRIGHT') then
+                y = 0 - (topHeight - (bottom + height))
+            elseif(anchor == 'LEFT' or anchor == 'CENTER' or anchor == 'RIGHT') then
+                y = (bottom + (height / 2)) - (topHeight / 2)
+            elseif(anchor == 'BOTTOMLEFT' or anchor == 'BOTTOM' or anchor == 'BOTTOMRIGHT') then
+                y = bottom
+            end
             
             options.set('pos-x', tonumber(string.format('%.1f', x)), true)
             options.set('pos-y', tonumber(string.format('%.1f', y)), true)
-            options.set('pos-anchor', anchor, true)
+            
+            --
+            --
+            --local _, _, anchor, x, y = self:GetPoint()
+            --
+            --options.set('pos-x', tonumber(string.format('%.1f', x)), true)
+            --options.set('pos-y', tonumber(string.format('%.1f', y)), true)
+            --options.set('pos-anchor', anchor, true)
         end
     end,
     ['applyVisualGeneralOption'] = function(key)
-        if(key == 'pos-x' or key == 'pos-y' or key == 'pos-anchor') then
-            frames.main:ClearAllPoints()
-            frames.main:SetPoint(options.get('pos-anchor'), UIParent, options.get('pos-anchor'), options.get('pos-x'), options.get('pos-y'))
-            
+        if(key == 'pos-x'
+        or key == 'pos-y'
+        or key == 'pos-anchor') then
+            interface.applyPositionOptions()
             return true
         end
         
-        if(key == 'width' or key == 'height') then
+        if(key == 'width'
+        or key == 'height') then
             interface.applyDimensions()
-        
-            if(interface.built) then
-                interface.renderBarValues()
-                interface.setBarPositions()
-                interface.setBorderPositions()
-                interface.drawSegments()
-            end
-        
+            interface.renderBarValues()
+            interface.setBarPositions()
+            interface.setBorderPositions()
+            interface.drawSegments()
             return true
         end
         
@@ -165,54 +196,21 @@ interface = {
             return true
         end
         
-        if(key == 'show-text') then
-            for _, bar in pairs(frames.bars) do
-                if(options.get('show-text') == 'always') then
-                    bar.text:Show()
-                else
-                    bar.text:Hide()
-                end
-            end
-
+        if(key == 'show-text'
+        or key == 'text-size'
+        or key == 'text-outline'
+        or key == 'text-colour'
+        or key == 'text-alignment'
+        or key == 'text-vertical-alignment'
+        or key == 'nudge-text-horizontal'
+        or key == 'nudge-text-vertical') then
+            interface.applyTextOptions()
             return true
         end
         
-        if(key == 'text-size') then
-            for _, bar in pairs(frames.bars) do
-                local font = bar.text:GetFont()
-                bar.text:SetFont(font, options.get('text-size'), 'OUTLINE')
-            end
-
-            return true
-        end
-        
-        if(key == 'text-alignment') then
-            for _, bar in pairs(frames.bars) do
-                bar.text:SetJustifyH(options.get('text-alignment'))
-            end
-
-            return true
-        end
-        
-        if(key == 'text-colour') then
-            local colour = options.get('text-colour')
-        
-            for _, bar in pairs(frames.bars) do
-                bar.text:SetTextColor(colour.r, colour.g, colour.b, colour.a)
-            end
-
-            return true
-        end
-        
-        if(key == 'strata') then
-            frames.main:SetFrameStrata(options.get('strata'))
-            
-            if(options.get('strata') == 'BACKGROUND' or options.get('strata') == 'LOW' or options.get('strata') == 'MEDIUM') then
-                frames.cursorIntercept:SetFrameStrata('HIGH')
-            else
-                frames.cursorIntercept:SetFrameStrata(options.get('strata'))
-            end
-            
+        if(key == 'strata'
+        or key == 'min-interactive-strata') then
+            interface.applyStrataOptions()
             return true
         end
         
@@ -226,7 +224,8 @@ interface = {
             return true
         end
         
-        if(key == 'borders' or key == 'side-borders') then
+        if(key == 'borders'
+        or key == 'side-borders') then
             interface.setBorderPositions()
             interface.setBarTexturePositions()
             interface.applyDimensions()
@@ -257,7 +256,7 @@ interface = {
         
         if(key == 'hide-blizzard') then
             interface.applyHideBlizzard()
-            return
+            return true
         end
         
         if(key == 're-anchor-stance-bar') then
@@ -267,7 +266,12 @@ interface = {
                 UIParent_ManageFramePositions()
             end
             
-            return
+            return true
+        end
+        
+        if(key == 'adjust-for-vehicle') then
+            interface.applyVehicleTempOptions(VehicleMenuBar:IsShown() ~= nil, true)
+            return true
         end
         
         return false
@@ -305,19 +309,9 @@ interface = {
             interface.attachBordersToFrame(bar)
             
             bar.text = bar:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
-            bar.text:SetJustifyH(options.get('text-alignment'))
-            
-            local font = bar.text:GetFont()
-            bar.text:SetFont(font, options.get('text-size'), 'OUTLINE')
-            
-            local colour = options.get('text-colour')
-            bar.text:SetTextColor(colour.r, colour.g, colour.b, colour.a)
-            
-            if(options.get('show-text') ~= 'always') then
-                bar.text:Hide()
-            end
             
             interface.setBarTexturePositions(key)
+            interface.applyTextOptions(key)
             interface.setBorderPositions(key)
         end
         
@@ -349,6 +343,12 @@ interface = {
             end
             
             frames.main:SetSize(options.get('width'), mainHeight)
+        end
+            
+        if(interface.built) then
+            for key, _ in pairs(frames.bars) do
+                interface.renderBarValues(key)
+            end
         end
     end,
     ['attachBordersToFrame'] = function(parent)
@@ -513,7 +513,7 @@ interface = {
         end
         
         local xOffset = 0
-        local width = options.get('width')
+        local width = frames.main:GetWidth()
         
         if(options.get('side-borders')) then
             width = width - 4
@@ -629,7 +629,7 @@ interface = {
             core.updateFunctionMap[key](key)
         end
         
-        local width = options.get('width')
+        local width = frames.main:GetWidth()
         
         if(options.get('side-borders')) then
             width = width - 3
@@ -690,7 +690,7 @@ interface = {
                     local bar = interface.getBar(data.key)
                     bar:ClearAllPoints()
                 
-                    bar:SetSize(options.get('width'), barHeight)
+                    bar:SetSize(frames.main:GetWidth(), barHeight)
                     
                     if(prev == nil) then
                         bar:SetPoint('TOPLEFT', frames.main, 'TOPLEFT', 0, topPad)
@@ -756,13 +756,8 @@ interface = {
             if(options.get('side-borders')) then
                 fromLeft = 1.5
                 fromRight = -1.5
-                textFromLeft = 4
-                textFromRight = -4
             end
         end
-        
-        bar.text:SetPoint('TOPLEFT', bar, 'TOPLEFT', textFromLeft, fromTop)
-        bar.text:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', textFromRight, fromBottom)
         
         bar.background:ClearAllPoints()
         bar.progress:ClearAllPoints()
@@ -775,6 +770,48 @@ interface = {
             
             bar.progress:SetPoint('TOPLEFT', bar, 'TOPLEFT', fromLeft, fromTop)
             bar.progress:SetPoint('BOTTOMLEFT', bar, 'BOTTOMLEFT', fromLeft, fromBottom)
+        end
+    end,
+    ['applyTextOptions'] = function(key)
+        if(key == nil) then
+            for key, _ in pairs(frames.bars) do
+                interface.applyTextOptions(key)
+            end
+            
+            return
+        end
+        
+        local bar = interface.getBar(key)
+            
+        if(options.get('show-text') == 'always') then
+            bar.text:Show()
+        else
+            bar.text:Hide()
+        end
+            
+        local font = bar.text:GetFont()
+        bar.text:SetFont(font, options.get('text-size'), options.get('text-outline'))
+        
+        local colour = options.get('text-colour')
+        bar.text:SetTextColor(colour.r, colour.g, colour.b, colour.a)
+        
+        bar.text:SetJustifyH(options.get('text-alignment'))
+        bar.text:SetJustifyV(options.get('text-vertical-alignment'))
+        
+        bar.text:SetPoint('TOPLEFT', bar, 'TOPLEFT', options.get('nudge-text-horizontal'), options.get('nudge-text-vertical'))
+        bar.text:SetPoint('BOTTOMRIGHT', bar, 'BOTTOMRIGHT', options.get('nudge-text-horizontal'), options.get('nudge-text-vertical'))
+    end,
+    ['applyPositionOptions'] = function()
+        frames.main:ClearAllPoints()
+        frames.main:SetPoint(options.get('pos-anchor'), UIParent, options.get('pos-anchor'), options.get('pos-x'), options.get('pos-y'))
+    end,
+    ['applyStrataOptions'] = function()
+        frames.main:SetFrameStrata(options.get('strata'))
+        
+        if(lookup.strataOrderMap[options.get('strata')] > lookup.strataOrderMap[options.get('min-interactive-strata')]) then
+            frames.cursorIntercept:SetFrameStrata(options.get('strata'))
+        else
+            frames.cursorIntercept:SetFrameStrata(options.get('min-interactive-strata'))
         end
     end,
     ['applyHideBlizzard'] = function()
@@ -834,6 +871,33 @@ interface = {
         if(options.get('re-anchor-stance-bar')) then
             ShapeshiftBarFrame:SetPoint('BOTTOMLEFT', frames.main, 'TOPLEFT', 24, 0)
             PossessBarFrame:SetPoint('BOTTOMLEFT', frames.main, 'TOPLEFT', 24, 0)
+        end
+    end,
+    ['applyVehicleTempOptions'] = function(vehicleShown, force)
+        if(force or options.get('adjust-for-vehicle')) then
+            if(vehicleShown) then
+                frames.main:ClearAllPoints()
+                frames.main:SetPoint('BOTTOMLEFT', VehicleMenuBarArtFrameARTWORK6, 'TOPLEFT', -7, -3)
+                frames.main:SetPoint('BOTTOMRIGHT', VehicleMenuBarArtFrameARTWORK9, 'TOPRIGHT', 6, -3)
+                
+                if(frames.main:GetLeft() == nil or frames.main:GetRight() == nil) then
+                    core.queueAction('re-apply-vehicle-temp-options', 0.05, function()
+                        interface.applyVehicleTempOptions(vehicleShown, force)
+                    end)
+                    
+                    return
+                end
+                
+                frames.main:SetWidth(frames.main:GetRight() - frames.main:GetLeft())
+            else
+                interface.applyPositionOptions()
+                interface.applyDimensions()
+            end
+            
+            interface.renderBarValues()
+            interface.setBarPositions()
+            interface.setBorderPositions()
+            interface.drawSegments()
         end
     end,
 }

@@ -102,6 +102,15 @@ core = {
         
         interface.applyHideBlizzard()
         interface.reAnchorStanceBar()
+        interface.applyVehicleTempOptions(VehicleMenuBar:IsShown() ~= nil)
+        
+        VehicleMenuBar:HookScript('OnShow', function()
+            interface.applyVehicleTempOptions(true)
+        end)
+        
+        VehicleMenuBar:HookScript('OnHide', function()
+            interface.applyVehicleTempOptions(false)
+        end)
     end,
     ['attachAllEvents'] = function()
         core.eventMap = {}
@@ -203,7 +212,7 @@ core = {
         
         core.prevLoop = core.timer
         
-        interface.mainFrameInterfaceLoop(self)
+        interface.dragPositionCallback(self)
         
         -- Delayed update
         for key, when in pairs(core.delayedUpdate) do

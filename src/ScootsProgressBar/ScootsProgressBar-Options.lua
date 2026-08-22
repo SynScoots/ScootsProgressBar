@@ -16,16 +16,13 @@ options = {
             ['mode'] = 'single',
             ['hide-blizzard'] = false,
             ['re-anchor-stance-bar'] = false,
+            ['adjust-for-vehicle'] = false,
             ['non-interactive'] = false,
             ['tooltip-display'] = 'all',
             ['percent-precision'] = 1,
         },
         ['appearance'] = {
             ['use-flat-texture'] = false,
-            ['show-text'] = 'always',
-            ['text-size'] = 12,
-            ['text-colour'] = {['r'] = 1, ['g'] = 1, ['b'] = 1, ['a'] = 1},
-            ['text-alignment'] = 'CENTER',
             ['width'] = lookup.NONE_VAL,
             ['height'] = 12,
             ['segments'] = 20,
@@ -34,6 +31,16 @@ options = {
             ['multi-mode-sizing'] = 'multiply',
             ['overall-opacity'] = 100,
         },
+        ['text'] = {
+            ['show-text'] = 'always',
+            ['text-size'] = 12,
+            ['text-outline'] = 'OUTLINE',
+            ['text-colour'] = {['r'] = 1, ['g'] = 1, ['b'] = 1, ['a'] = 1},
+            ['text-alignment'] = 'CENTER',
+            ['nudge-text-horizontal'] = 0,
+            ['text-vertical-alignment'] = 'MIDDLE',
+            ['nudge-text-vertical'] = 0,
+        },
         ['position'] = {
             ['pos-x'] = 0,
             ['pos-y'] = 1,
@@ -41,22 +48,18 @@ options = {
             ['clamp-to-screen'] = true,
             ['pos-anchor'] = 'BOTTOM',
             ['strata'] = 'MEDIUM',
+            ['min-interactive-strata'] = 'MEDIUM',
         },
-    ----
-['freetimer'] = {
-
-},
     },
     ['mimicBlizzardDefaultCategories'] = {
         ['general'] = {
             ['mode'] = 'single',
             ['hide-blizzard'] = true,
             ['re-anchor-stance-bar'] = false,
+            ['adjust-for-vehicle'] = true,
         },
         ['appearance'] = {
             ['use-flat-texture'] = false,
-            ['text-size'] = 10,
-            ['text-alignment'] = 'CENTER',
             ['width'] = 1012,
             ['height'] = 12,
             ['segments'] = 20,
@@ -65,11 +68,19 @@ options = {
             ['multi-mode-sizing'] = 'multiply',
             ['overall-opacity'] = 100,
         },
+        ['text'] = {
+            ['text-size'] = 10,
+            ['text-outline'] = 'OUTLINE',
+            ['text-alignment'] = 'CENTER',
+            ['text-vertical-alignment'] = 'TOP',
+            ['nudge-text-vertical'] = 1,
+        },
         ['position'] = {
             ['pos-x'] = 0,
             ['pos-y'] = 41,
             ['pos-anchor'] = 'BOTTOM',
             ['strata'] = 'MEDIUM',
+            ['min-interactive-strata'] = 'HIGH',
         },
     },
     ['optionPageDefinitions'] = {},
@@ -192,6 +203,13 @@ options = {
             ['callback'] = options.defineGeneralOptions,
         }
         
+        options.optionPageDefinitions['text'] = {
+            ['framename'] = 'ScootsProgressBar-Options-Text',
+            ['title'] = 'Text options',
+            ['description'] = nil,
+            ['callback'] = options.defineTextOptions,
+        }
+        
         options.optionPageDefinitions['appearance'] = {
             ['framename'] = 'ScootsProgressBar-Options-Appearance',
             ['title'] = 'Appearance options',
@@ -294,6 +312,13 @@ options = {
                 ['tooltip'] = string.format('Anchor the Blizzard stance bar to the %s frame.', ScootsProgressBar.title),
             },
             {
+                ['key'] = 'adjust-for-vehicle',
+                ['type'] = 'checkbox',
+                ['framename'] = data.framename .. '-LockToVehicle',
+                ['label'] = 'Adjust for Blizzard vehicle UI',
+                ['tooltip'] = 'When the Blizzard vehicle UI is shown, set an appropriate width/position of the bar to match.',
+            },
+            {
                 ['key'] = 'non-interactive',
                 ['type'] = 'checkbox',
                 ['framename'] = data.framename .. '-NonInteractive',
@@ -354,14 +379,8 @@ options = {
             },
         }
     end,
-    ['defineAppearanceOptions'] = function(data)
+    ['defineTextOptions'] = function(data)
         return {
-            {
-                ['key'] = 'use-flat-texture',
-                ['type'] = 'checkbox',
-                ['framename'] = data.framename .. '-UseFlatTexture',
-                ['label'] = 'Use flat texture for bars',
-            },
             {
                 ['key'] = 'show-text',
                 ['type'] = 'dropdown',
@@ -393,6 +412,27 @@ options = {
                 ['min'] = 1,
             },
             {
+                ['key'] = 'text-outline',
+                ['type'] = 'dropdown',
+                ['framename'] = data.framename .. '-TextOutline',
+                ['label'] = 'Outline',
+                ['tooltip'] = '"On-hover" requires that you not have made the bar non-interactive.',
+                ['choices'] = {
+                    {
+                        ['name'] = 'None',
+                        ['value'] = nil,
+                    },
+                    {
+                        ['name'] = 'Normal',
+                        ['value'] = 'OUTLINE',
+                    },
+                    {
+                        ['name'] = 'Thick',
+                        ['value'] = 'THICKOUTLINE',
+                    },
+                },
+            },
+            {
                 ['key'] = 'text-colour',
                 ['type'] = 'colour',
                 ['framename'] = data.framename .. '-ColourPicker-TextColour',
@@ -402,7 +442,7 @@ options = {
                 ['key'] = 'text-alignment',
                 ['type'] = 'choice-slider',
                 ['framename'] = data.framename .. '-TextAlignment',
-                ['label'] = 'Text alignment',
+                ['label'] = 'Alignment',
                 ['callbackWhileDragging'] = true,
                 ['choices'] = {
                     {
@@ -418,6 +458,51 @@ options = {
                         ['value'] = 'RIGHT',
                     },
                 },
+            },
+            {
+                ['key'] = 'nudge-text-horizontal',
+                ['type'] = 'increment-text',
+                ['framename'] = data.framename .. '-NudgeTextHorizontal',
+                ['label'] = 'Nudge horizontally',
+                ['increment'] = 1,
+            },
+            {
+                ['key'] = 'text-vertical-alignment',
+                ['type'] = 'choice-slider',
+                ['framename'] = data.framename .. '-TextVerticalAlignment',
+                ['label'] = 'Vertical alignment',
+                ['callbackWhileDragging'] = true,
+                ['choices'] = {
+                    {
+                        ['name'] = 'Bottom',
+                        ['value'] = 'BOTTOM',
+                    },
+                    {
+                        ['name'] = 'Middle',
+                        ['value'] = 'MIDDLE',
+                    },
+                    {
+                        ['name'] = 'Top',
+                        ['value'] = 'TOP',
+                    },
+                },
+            },
+            {
+                ['key'] = 'nudge-text-vertical',
+                ['type'] = 'increment-text',
+                ['framename'] = data.framename .. '-NudgeTextVertical',
+                ['label'] = 'Nudge vertically',
+                ['increment'] = 1,
+            },
+        }
+    end,
+    ['defineAppearanceOptions'] = function(data)
+        return {
+            {
+                ['key'] = 'use-flat-texture',
+                ['type'] = 'checkbox',
+                ['framename'] = data.framename .. '-UseFlatTexture',
+                ['label'] = 'Use flat texture for bars',
             },
             {
                 ['key'] = 'width',
@@ -653,6 +738,59 @@ options = {
                     {
                         ['name'] = 'FULLSCREEN',
                         ['value'] = 'FULLSCREEN',
+                    },
+                    {
+                        ['name'] = 'FULLSCREEN_DIALOG',
+                        ['value'] = 'FULLSCREEN_DIALOG',
+                    },
+                    {
+                        ['name'] = 'TOOLTIP',
+                        ['value'] = 'TOOLTIP',
+                    },
+                },
+            },
+            {
+                ['key'] = 'min-interactive-strata',
+                ['type'] = 'choice-slider',
+                ['framename'] = data.framename .. '-MinInteractiveStrata',
+                ['label'] = 'Minimum interactive strata',
+                ['tooltip'] = table.concat({
+                    'This option allows you to increase the priority for interacting with the bar without changing how it is displayed.',
+                    'If set to a lower value than the "Frame strata" option, that value will be used instead.',
+                }, '\n\n'),
+                ['callbackWhileDragging'] = true,
+                ['choices'] = {
+                    {
+                        ['name'] = 'BACKGROUND',
+                        ['value'] = 'BACKGROUND',
+                    },
+                    {
+                        ['name'] = 'LOW',
+                        ['value'] = 'LOW',
+                    },
+                    {
+                        ['name'] = 'MEDIUM',
+                        ['value'] = 'MEDIUM',
+                    },
+                    {
+                        ['name'] = 'HIGH',
+                        ['value'] = 'HIGH',
+                    },
+                    {
+                        ['name'] = 'DIALOG',
+                        ['value'] = 'DIALOG',
+                    },
+                    {
+                        ['name'] = 'FULLSCREEN',
+                        ['value'] = 'FULLSCREEN',
+                    },
+                    {
+                        ['name'] = 'FULLSCREEN_DIALOG',
+                        ['value'] = 'FULLSCREEN_DIALOG',
+                    },
+                    {
+                        ['name'] = 'TOOLTIP',
+                        ['value'] = 'TOOLTIP',
                     },
                 },
             },

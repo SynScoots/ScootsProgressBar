@@ -112,7 +112,7 @@ options = {
                         ['framename'] = data.framename,
                         ['parent'] = contentHolder,
                         ['width'] = contentHolder:GetWidth() - contentHolder.scrollBar:GetWidth(),
-                        ['title'] = core.definedBars[key],
+                        ['title'] = data.title or core.definedBars[key],
                         ['description'] = data.description,
                         ['callback'] = data.callback,
                         ['special'] = data.special,
@@ -166,7 +166,10 @@ options = {
         frames.options.menuLinks['general']:SetPoint('TOPLEFT', frames.options.menuScrollChild, 'TOPLEFT', 0, -8)
         local height = frames.options.menuLinks['general']:GetHeight() + 8
         
-        frames.options.menuLinks['appearance']:SetPoint('TOPLEFT', frames.options.menuLinks['general'], 'BOTTOMLEFT', 0, 0)
+        frames.options.menuLinks['text']:SetPoint('TOPLEFT', frames.options.menuLinks['general'], 'BOTTOMLEFT', 0, 0)
+        height = height + frames.options.menuLinks['text']:GetHeight()
+        
+        frames.options.menuLinks['appearance']:SetPoint('TOPLEFT', frames.options.menuLinks['text'], 'BOTTOMLEFT', 0, 0)
         height = height + frames.options.menuLinks['appearance']:GetHeight()
         
         frames.options.menuLinks['position']:SetPoint('TOPLEFT', frames.options.menuLinks['appearance'], 'BOTTOMLEFT', 0, 0)
@@ -494,7 +497,7 @@ options = {
                 
                 --
                 
-                return height + math.max(textbox:GetHeight(), button:GetHeight()) + 30
+                return height + math.max(textbox:GetHeight(), button:GetHeight()) + 40
             end,
         })
         
@@ -884,9 +887,9 @@ options = {
         
         local field, firstField, prev, prevType
         local height = 0
-        local prevXOffset = 0
-        local nextExtraY = 0
-        local nextXOffset = 0
+        local xOffsetPrev = 0
+        local yOffsetNext = 0
+        local xOffsetNext = 0
         local exportXOffset = 0
         local exportYOffset = 0
         
@@ -894,280 +897,22 @@ options = {
         
         for _, fieldData in pairs(fieldList) do
             local xOffset = 0
-            local extraY = 0
+            local yOffset = 0
             local addLabel = false
             local spacing = 10
             
-            if(nextExtraY > 0) then
-                extraY = nextExtraY
-                nextExtraY = 0
+            if(yOffsetNext > 0) then
+                yOffset = yOffsetNext
+                yOffsetNext = 0
             end
             
-            if(fieldData.type == 'checkbox') then
-                field = options.insertOptionsCheckbox({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['label'] = fieldData.label,
-                    ['defaultState'] = options.get(fieldData.key),
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-            elseif(fieldData.type == 'radio') then
-                field = options.insertOptionsRadio({
-                    ['label'] = fieldData.label,
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['defaultValue'] = options.get(fieldData.key),
-                    ['choices'] = fieldData.choices,
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                        
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-            elseif(fieldData.type == 'reorder-buttons') then
-                field = options.insertOptionsReorderButtons({
-                    ['key'] = pageData.key,
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['label'] = fieldData.label,
-                    ['size'] = fieldData.size,
-                    ['callback'] = function()
-                        core.prepareUpdate('_', fieldData.key)
-                    end,
-                })
-                
-                addLabel = ((fieldData.label or '') ~= '')
-            elseif(fieldData.type == 'colour') then
-                field = options.insertOptionsColourPicker({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['text'] = fieldData.text,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['colour'] = function()
-                        return options.get(fieldData.key)
-                    end,
-                    ['callback'] = function(self, r, g, b, a)
-                        local value = {['r'] = r, ['g'] = g, ['b'] = b, ['a'] = a}
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-            elseif(fieldData.type == 'text') then
-                field = options.insertOptionsTextField({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['label'] = fieldData.label,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['default'] = options.get(fieldData.key),
-                    ['numeric'] = fieldData.numeric,
-                    ['width'] = fieldData.width,
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-                
-                addLabel = ((fieldData.label or '') ~= '')
-            elseif(fieldData.type == 'reset-text') then
-                field = options.insertOptionsResetTextField({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['label'] = fieldData.label,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['default'] = options.get(fieldData.key),
-                    ['resetText'] = fieldData.resetText,
-                    ['resetValue'] = fieldData.resetValue,
-                    ['width'] = fieldData.width,
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-                
-                addLabel = ((fieldData.label or '') ~= '')
-            elseif(fieldData.type == 'increment-text') then
-                field = options.insertOptionsIncrementTextField({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['label'] = fieldData.label,
-                    ['width'] = fieldData.width or 100,
-                    ['height'] = fieldData.height or 20,
-                    ['justify'] = fieldData.justify or 'CENTER',
-                    ['increment'] = fieldData.increment,
-                    ['min'] = fieldData.min,
-                    ['max'] = fieldData.max,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['resetText'] = fieldData.resetText,
-                    ['resetCallback'] = fieldData.resetCallback,
-                    ['default'] = options.get(fieldData.key),
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-                
-                xOffset = (fieldData.height or 20) + 1
-                addLabel = ((fieldData.label or '') ~= '')
-            elseif(fieldData.type == 'button') then
-                field = options.insertOptionsButton({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['width'] = fieldData.width or 100,
-                    ['height'] = fieldData.height or 20,
-                    ['text'] = fieldData.text,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['callback'] = fieldData.callback,
-                })
-            elseif(fieldData.type == 'dropdown') then
-                field = options.insertOptionsDropdown({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['width'] = fieldData.width,
-                    ['choices'] = fieldData.choices,
-                    ['defaultValue'] = options.get(fieldData.key),
-                    ['label'] = fieldData.label,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-                
-                addLabel = ((fieldData.label or '') ~= '')
-            elseif(fieldData.type == 'range-slider') then
-                field = options.insertOptionsRangeSlider({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['width'] = fieldData.width,
-                    ['height'] = fieldData.height,
-                    ['defaultValue'] = options.get(fieldData.key),
-                    ['label'] = fieldData.label,
-                    ['increment'] = fieldData.increment,
-                    ['min'] = fieldData.min,
-                    ['max'] = fieldData.max,
-                    ['hideMinMax'] = fieldData.hideMinMax,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['callbackWhileDragging'] = fieldData.callbackWhileDragging,
-                    ['callback'] = function(self, value)
-                        value = tonumber(value)
-                        
-                        if(value ~= options.get(fieldData.key)) then
-                            options.set(fieldData.key, value)
-                            core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                            if(fieldData.callback) then
-                                fieldData.callback(pageData.key, fieldData.key, value)
-                            end
-                        end
-                    end,
-                })
-                
-                xOffset = 5
-                extraY = extraY + 10
-                nextExtraY = field.textbox:GetHeight()
-                addLabel = ((fieldData.label or '') ~= '')
-                
+            field, addLabel, xOffset, yOffsetNext = options.processOptionField(pageData, fieldData)
+            
+            if(fieldData.type == 'range-slider'
+            or fieldData.type == 'choice-slider') then
                 if(prevType == 'dropdown') then
-                    extraY = 0
+                    yOffset = 0
                 end
-            elseif(fieldData.type == 'choice-slider') then
-                field = options.insertOptionsChoiceSlider({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['width'] = fieldData.width,
-                    ['height'] = fieldData.height,
-                    ['choices'] = fieldData.choices,
-                    ['defaultValue'] = options.get(fieldData.key),
-                    ['label'] = fieldData.label,
-                    ['tooltip'] = fieldData.tooltip,
-                    ['tooltipExtra'] = fieldData.tooltipExtra,
-                    ['callbackWhileDragging'] = fieldData.callbackWhileDragging,
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-                
-                xOffset = 5
-                extraY = extraY + 10
-                nextExtraY = field.currentText:GetHeight()
-                addLabel = ((fieldData.label or '') ~= '')
-                
-                if(prevType == 'dropdown') then
-                    extraY = 0
-                end
-            elseif(fieldData.type == 'currency-picker') then
-                field = options.insertOptionsCurrencyPicker({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['label'] = fieldData.label,
-                    ['selected'] = options.get(fieldData.key),
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
-            elseif(fieldData.type == 'item-picker') then
-                field = options.insertOptionsItemPicker({
-                    ['framename'] = fieldData.framename,
-                    ['parent'] = pageData.parent,
-                    ['label'] = fieldData.label,
-                    ['selected'] = options.get(fieldData.key),
-                    ['callback'] = function(self, value)
-                        options.set(fieldData.key, value)
-                        core.prepareUpdate(pageData.key, fieldData.key, value)
-                    
-                        if(fieldData.callback) then
-                            fieldData.callback(pageData.key, fieldData.key, value)
-                        end
-                    end,
-                })
             end
             
             height = height + field:GetHeight()
@@ -1179,21 +924,21 @@ options = {
             if(firstField == nil) then
                 firstField = field
                 exportXOffset = xOffset
-                nextXOffset = xOffset
+                xOffsetNext = xOffset
                 
                 if(addLabel) then
                     exportYOffset = field.label:GetHeight()
                 end
             else
-                field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - prevXOffset) - nextXOffset, 0 - (spacing + extraY))
-                height = height + spacing + extraY
+                field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - xOffsetPrev) - xOffsetNext, 0 - (spacing + yOffset))
+                height = height + spacing + yOffset
                 
                 if(addLabel) then
-                    field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - prevXOffset) - nextXOffset, 0 - (spacing + field.label:GetHeight() + extraY))
+                    field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - xOffsetPrev) - xOffsetNext, 0 - (spacing + field.label:GetHeight() + yOffset))
                 end
                 
-                prevXOffset = xOffset
-                nextXOffset = 0
+                xOffsetPrev = xOffset
+                xOffsetNext = 0
             end
             
             options.fieldKeys[fieldData.key] = field
@@ -1203,56 +948,375 @@ options = {
             addLabel = false
         end
         
-        height = height + nextExtraY + 20
+        height = height + yOffsetNext + 20
         
         return firstField, height, exportXOffset, exportYOffset
     end,
+    ['processOptionField'] = function(pageData, fieldData)
+        local field
+        local addLabel = false
+        local xOffset, yOffsetNext = 0, 0
+        
+        if(fieldData.type == 'checkbox') then
+            field = options.ProcessOptionCheckbox(pageData, fieldData)
+        elseif(fieldData.type == 'radio') then
+            field = options.ProcessOptionRadio(pageData, fieldData)
+        elseif(fieldData.type == 'reorder-buttons') then
+            field = options.ProcessOptionReorderButtons(pageData, fieldData)
+        elseif(fieldData.type == 'colour') then
+            field = options.ProcessOptionColour(pageData, fieldData)
+        elseif(fieldData.type == 'text') then
+            field = options.ProcessOptionText(pageData, fieldData)
+        elseif(fieldData.type == 'reset-text') then
+            field = options.ProcessOptionResetText(pageData, fieldData)
+        elseif(fieldData.type == 'increment-text') then
+            field = options.ProcessOptionIncrementText(pageData, fieldData)
+        elseif(fieldData.type == 'button') then
+            field = options.ProcessOptionButton(pageData, fieldData)
+        elseif(fieldData.type == 'dropdown') then
+            field = options.ProcessOptionDropdown(pageData, fieldData)
+        elseif(fieldData.type == 'range-slider') then
+            field = options.ProcessOptionRangeSlider(pageData, fieldData)
+        elseif(fieldData.type == 'choice-slider') then
+            field = options.ProcessOptionChoiceSlider(pageData, fieldData)
+        elseif(fieldData.type == 'currency-picker') then
+            field = options.ProcessOptionCurrencyPicker(pageData, fieldData)
+        elseif(fieldData.type == 'item-picker') then
+            field = options.ProcessOptionItemPicker(pageData, fieldData)
+        end
+        
+        if(fieldData.type == 'reorder-buttons'
+        or fieldData.type == 'text'
+        or fieldData.type == 'reset-text'
+        or fieldData.type == 'increment-text'
+        or fieldData.type == 'dropdown'
+        or fieldData.type == 'range-slider'
+        or fieldData.type == 'choice-slider') then
+            addLabel = ((fieldData.label or '') ~= '')
+        end
+        
+        if(fieldData.type == 'range-slider'
+        or fieldData.type == 'choice-slider') then
+            xOffset = 5
+        elseif(fieldData.type == 'increment-text') then
+            xOffset = (fieldData.height or 20) + 1
+        end
+        
+        if(fieldData.type == 'range-slider') then
+            yOffsetNext = field.textbox:GetHeight() + (select(4, field.lowText:GetPoint()))
+        elseif(fieldData.type == 'choice-slider') then
+            yOffsetNext = field.currentText:GetHeight() + (select(4, field.lowText:GetPoint()))
+        end
+        
+        return field, addLabel, xOffset, yOffsetNext
+    end,
+    ----
+    ['ProcessOptionCheckbox'] = function(pageData, fieldData)
+        return options.insertOptionsCheckbox({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['defaultState'] = options.get(fieldData.key),
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionRadio'] = function(pageData, fieldData)
+        return options.insertOptionsRadio({
+            ['label'] = fieldData.label,
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['defaultValue'] = options.get(fieldData.key),
+            ['choices'] = fieldData.choices,
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+                
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionReorderButtons'] = function(pageData, fieldData)
+        return options.insertOptionsReorderButtons({
+            ['key'] = pageData.key,
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['size'] = fieldData.size,
+            ['callback'] = function()
+                core.prepareUpdate('_', fieldData.key)
+            end,
+        })
+    end,
+    ['ProcessOptionColour'] = function(pageData, fieldData)
+        return options.insertOptionsColourPicker({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['text'] = fieldData.text,
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['colour'] = function()
+                return options.get(fieldData.key)
+            end,
+            ['callback'] = function(self, r, g, b, a)
+                local value = {['r'] = r, ['g'] = g, ['b'] = b, ['a'] = a}
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionText'] = function(pageData, fieldData)
+        return options.insertOptionsTextField({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['default'] = options.get(fieldData.key),
+            ['numeric'] = fieldData.numeric,
+            ['width'] = fieldData.width,
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionResetText'] = function(pageData, fieldData)
+        return options.insertOptionsResetTextField({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['default'] = options.get(fieldData.key),
+            ['resetText'] = fieldData.resetText,
+            ['resetValue'] = fieldData.resetValue,
+            ['width'] = fieldData.width,
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionIncrementText'] = function(pageData, fieldData)
+        return options.insertOptionsIncrementTextField({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['width'] = fieldData.width or 100,
+            ['height'] = fieldData.height or 20,
+            ['justify'] = fieldData.justify or 'CENTER',
+            ['increment'] = fieldData.increment,
+            ['min'] = fieldData.min,
+            ['max'] = fieldData.max,
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['resetText'] = fieldData.resetText,
+            ['resetCallback'] = fieldData.resetCallback,
+            ['default'] = options.get(fieldData.key),
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionButton'] = function(pageData, fieldData)
+        return options.insertOptionsButton({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['width'] = fieldData.width or 100,
+            ['height'] = fieldData.height or 20,
+            ['text'] = fieldData.text,
+            ['tooltip'] = fieldData.tooltip,
+            ['callback'] = fieldData.callback,
+        })
+    end,
+    ['ProcessOptionDropdown'] = function(pageData, fieldData)
+        return options.insertOptionsDropdown({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['width'] = fieldData.width,
+            ['choices'] = fieldData.choices,
+            ['defaultValue'] = options.get(fieldData.key),
+            ['label'] = fieldData.label,
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionRangeSlider'] = function(pageData, fieldData)
+        return options.insertOptionsRangeSlider({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['width'] = fieldData.width,
+            ['height'] = fieldData.height,
+            ['defaultValue'] = options.get(fieldData.key),
+            ['label'] = fieldData.label,
+            ['increment'] = fieldData.increment,
+            ['min'] = fieldData.min,
+            ['max'] = fieldData.max,
+            ['hideMinMax'] = fieldData.hideMinMax,
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['callbackWhileDragging'] = fieldData.callbackWhileDragging,
+            ['callback'] = function(self, value)
+                value = tonumber(value)
+                
+                if(value ~= options.get(fieldData.key)) then
+                    options.set(fieldData.key, value)
+                    core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                    if(fieldData.callback) then
+                        fieldData.callback(pageData.key, fieldData.key, value)
+                    end
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionChoiceSlider'] = function(pageData, fieldData)
+        return options.insertOptionsChoiceSlider({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['width'] = fieldData.width,
+            ['height'] = fieldData.height,
+            ['choices'] = fieldData.choices,
+            ['defaultValue'] = options.get(fieldData.key),
+            ['label'] = fieldData.label,
+            ['tooltip'] = fieldData.tooltip,
+            ['tooltipExtra'] = fieldData.tooltipExtra,
+            ['callbackWhileDragging'] = fieldData.callbackWhileDragging,
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionCurrencyPicker'] = function(pageData, fieldData)
+        return options.insertOptionsCurrencyPicker({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['selected'] = options.get(fieldData.key),
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ['ProcessOptionItemPicker'] = function(pageData, fieldData)
+        return options.insertOptionsItemPicker({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['selected'] = options.get(fieldData.key),
+            ['callback'] = function(self, value)
+                options.set(fieldData.key, value)
+                core.prepareUpdate(pageData.key, fieldData.key, value)
+            
+                if(fieldData.callback) then
+                    fieldData.callback(pageData.key, fieldData.key, value)
+                end
+            end,
+        })
+    end,
+    ----
     ['insertOptionsGroup'] = function(data)
         local group = CreateFrame('Frame', data.framename, data.parent)
         group:SetWidth(data.width)
         
-        if(data.shape and data.shape == 'square') then
-            group:SetBackdrop({
-                ['bgFile'] = 'Interface\\DialogFrame\\UI-DialogBox-Background-Dark',
-                ['edgeFile'] = 'Interface\\DialogFrame\\UI-DialogBox-Border',
-                ['edgeSize'] = 32,
-                ['insets'] = {
-                    ['top'] = 12,
-                    ['right'] = 12,
-                    ['bottom'] = 9,
-                    ['left'] = 11,
-                },
-            })
-        else
-            group:SetBackdrop({
-                ['bgFile'] = 'Interface\\Tooltips\\UI-Tooltip-Background',
-                ['edgeFile'] = 'Interface\\Tooltips\\UI-Tooltip-Border',
-                ['tile'] = true,
-                ['tileSize'] = 16,
-                ['edgeSize'] = 16,
-                ['insets'] = {
-                    ['top'] = 5,
-                    ['right'] = 5,
-                    ['bottom'] = 5,
-                    ['left'] = 5,
-                },
-            })
+        if(data.shape ~= 'none') then
+            if(data.shape == 'square') then
+                group:SetBackdrop({
+                    ['bgFile'] = 'Interface\\DialogFrame\\UI-DialogBox-Background-Dark',
+                    ['edgeFile'] = 'Interface\\DialogFrame\\UI-DialogBox-Border',
+                    ['edgeSize'] = 32,
+                    ['insets'] = {
+                        ['top'] = 12,
+                        ['right'] = 12,
+                        ['bottom'] = 9,
+                        ['left'] = 11,
+                    },
+                })
+            else
+                group:SetBackdrop({
+                    ['bgFile'] = 'Interface\\Tooltips\\UI-Tooltip-Background',
+                    ['edgeFile'] = 'Interface\\Tooltips\\UI-Tooltip-Border',
+                    ['tile'] = true,
+                    ['tileSize'] = 16,
+                    ['edgeSize'] = 16,
+                    ['insets'] = {
+                        ['top'] = 5,
+                        ['right'] = 5,
+                        ['bottom'] = 5,
+                        ['left'] = 5,
+                    },
+                })
 
-            group:SetBackdropColor(0, 0, 0, 0.2)
-            group:SetBackdropBorderColor(1, 1, 1, 0.5)
+                group:SetBackdropColor(0, 0, 0, 0.2)
+                group:SetBackdropBorderColor(1, 1, 1, 0.5)
+            end
         end
         
         local height = 0
         
         if(data.label) then
+            local fromLeft = 10
+            local fromTop = 10
+            
+            if(data.shape == 'none') then
+                fromLeft = 0
+                fromTop = 0
+            end
+        
             group.label = group:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall')
-            group.label:SetPoint('TOPLEFT', group, 'TOPLEFT', 10, -10)
-            group.label:SetWidth(group:GetWidth() - 20)
+            group.label:SetPoint('TOPLEFT', group, 'TOPLEFT', fromLeft, 0 - fromTop)
+            group.label:SetWidth(group:GetWidth() - (fromLeft * 2))
             group.label:SetJustifyH('LEFT')
             group.label:SetWordWrap(true)
             group.label:SetText(data.label)
             
-            height = height + group.label:GetHeight() + 20
+            height = height + group.label:GetHeight() + fromTop
         end
         
         if(data.callback ~= nil) then
@@ -1262,7 +1326,7 @@ options = {
             group:SetHeight(data.height)
         end
         
-        return group, group.label, height
+        return group
     end,
     ['insertOptionsScrollFrame'] = function(data)
         local scrollFrame = CreateFrame('ScrollFrame', data.framename .. '-ScrollFrame', data.parent, 'UIPanelScrollFrameTemplate')
@@ -1348,6 +1412,7 @@ options = {
         local holder = options.insertOptionsGroup({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
+            ['shape'] = 'none',
             ['label'] = data.label,
             ['width'] = 400,
             ['callback'] = function(group, header)
@@ -1381,9 +1446,10 @@ options = {
                     
                     if(prev == nil) then
                         if(header) then
-                            checkbox:SetPoint('TOPLEFT', header, 'BOTTOMLEFT', 0, -10)
+                            checkbox:SetPoint('TOPLEFT', header, 'BOTTOMLEFT', 0, -1)
+                            groupHeight = groupHeight + 1
                         else
-                            checkbox:SetPoint('TOPLEFT', group, 'TOPLEFT', 0, -10)
+                            checkbox:SetPoint('TOPLEFT', group, 'TOPLEFT', 0, 0)
                         end
                     else
                         checkbox:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', 0, -1)
@@ -1414,7 +1480,7 @@ options = {
                     end
                 end
                 
-                return groupHeight + 10
+                return groupHeight
             end,
         })
         
@@ -1799,6 +1865,11 @@ options = {
             end
             
             value = tonumber((tostring(value):gsub('[^0-9.\-]', ''))) or data.default or data.min or 0
+            
+            if(value == 0) then
+                value = 0 -- Convert negative 0
+            end
+            
             if(data.min) then
                 if(value <= data.min) then
                     value = data.min
@@ -1845,6 +1916,11 @@ options = {
         end
         
         --
+        
+        textbox.applyExternalValue = function(value)
+            textbox.preventCallback = true
+            textbox:SetText(textbox.sanitiseValue(value))
+        end
         
         textbox:SetText(textbox:GetText() or 0)
         textbox.sanitiseValue(textbox.currentValue)
@@ -2050,8 +2126,6 @@ options = {
             end)
         end
         
-        dropdown.refresh()
-        
         local old_UIDropDownMenu_InitializeHelper = UIDropDownMenu_InitializeHelper
         UIDropDownMenu_InitializeHelper = function(self)
             old_UIDropDownMenu_InitializeHelper(self)
@@ -2060,6 +2134,8 @@ options = {
                 self:SetHeight(26)
             end
         end
+        
+        dropdown.refresh()
         
         options.applyFieldTooltip({
             ['field'] = dropdown.button,
@@ -2211,7 +2287,6 @@ options = {
         textbox:SetFrameLevel(slider:GetFrameLevel() + 1)
         textbox.incrementUp:SetFrameLevel(slider:GetFrameLevel() + 1)
         textbox.incrementDown:SetFrameLevel(slider:GetFrameLevel() + 1)
-        
         textbox:SetPoint('TOPLEFT', slider.lowText, 'TOPLEFT', (slider:GetWidth() / 2) - (textbox:GetWidth() / 2), 0)
         
         slider:SetScript('OnValueChanged', function(self, value)
@@ -2294,7 +2369,7 @@ options = {
             ['width'] = data.width,
             ['callback'] = function(group, header)
                 local currencyList, currentCurrencyIndex
-                local height = 0
+                local height = 10
                 group.lastValue = data.selected
                 
                 group.currentItem = options.insertOptionsClearableItem({
@@ -2447,7 +2522,7 @@ options = {
             ['label'] = data.label,
             ['callback'] = function(group, header)
                 local currentItemDisplay, catcher, textbox
-                local height = 0
+                local height = 10
                 group.lastItem = data.selected
                 
                 --
@@ -2865,6 +2940,7 @@ options = {
         
         return holder
     end,
+    ----
     ['applyFieldTooltip'] = function(data)
         if(data.tooltip ~= nil) then
             data.field:SetScript('OnEnter', function()
