@@ -3,7 +3,7 @@
 ## Author: Scoots
 ## Notes: A configurable display to show a number of different progressive statistics.
 ## SavedVariables: SCOOTSPROGRESSBAR_STORAGE
-## Version: 1.2.0
+## Version: 1.2.1
 
 ScootsProgressBar.lua
 ScootsProgressBar-Core.lua

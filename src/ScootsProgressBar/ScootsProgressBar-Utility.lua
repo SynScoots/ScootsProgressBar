@@ -70,7 +70,6 @@ utility = {
     ['deleteAllDataForCharacter'] = function(guid)
         storage.dayStartAttunes.character[guid] = nil
         storage.bank[guid] = nil
-        storage.instances[guid] = nil
         storage.options.activeProfile[guid] = nil
         storage.characters[guid] = nil
     end,
@@ -424,10 +423,10 @@ utility = {
     
         for charGuid, charInstances in pairs(storage.instances) do
             if(charInstances.timestamp < lookup.raidResetTime and (charInstances.timestamp + 3600) < nowTime) then
-                charInstances[charGuid] = nil
+                storage.instances[charGuid] = nil
             else
                 for zoneId, instance in pairs(charInstances.active) do
-                    if(instance.isLfg and zoneId ~= currentZoneId) then
+                    if(instance.isLfg and zoneId ~= currentZoneId and charGuid ~= core.player.guid) then
                         table.insert(charInstances.reset, instance)
                         charInstances.active[zoneId] = nil
                     elseif((not instance.isRaid and instance.timestamp < lookup.dungeonResetTime) or (instance.isRaid and instance.timestamp < lookup.raidResetTime)) then

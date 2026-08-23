@@ -115,10 +115,10 @@ core.textFormatFunctionMap[key] = function(text)
 end
 
 core.tooltipLineFunctionMap[key] = function()
-    local leftText = core.definedBars[key]
-    local rightText
+    local leftText, rightText
     
     if(core.values[key].itemId ~= nil) then
+        leftText = core.values[key].name
         rightText = string.format(
             '%d / %d (' .. lookup.percentFormat .. '%%)',
             core.values[key].currentValue,
@@ -126,6 +126,7 @@ core.tooltipLineFunctionMap[key] = function()
             core.values[key].percent
         )
     else
+        leftText = core.definedBars[key]
         rightText = 'None selected'
     end
     

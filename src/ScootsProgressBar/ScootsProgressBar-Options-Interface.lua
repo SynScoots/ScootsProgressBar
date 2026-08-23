@@ -958,31 +958,33 @@ options = {
         local xOffset, yOffsetNext = 0, 0
         
         if(fieldData.type == 'checkbox') then
-            field = options.ProcessOptionCheckbox(pageData, fieldData)
+            field = options.processOptionCheckbox(pageData, fieldData)
         elseif(fieldData.type == 'radio') then
-            field = options.ProcessOptionRadio(pageData, fieldData)
+            field = options.processOptionRadio(pageData, fieldData)
         elseif(fieldData.type == 'reorder-buttons') then
-            field = options.ProcessOptionReorderButtons(pageData, fieldData)
+            field = options.processOptionReorderButtons(pageData, fieldData)
         elseif(fieldData.type == 'colour') then
-            field = options.ProcessOptionColour(pageData, fieldData)
+            field = options.processOptionColour(pageData, fieldData)
         elseif(fieldData.type == 'text') then
-            field = options.ProcessOptionText(pageData, fieldData)
+            field = options.processOptionText(pageData, fieldData)
         elseif(fieldData.type == 'reset-text') then
-            field = options.ProcessOptionResetText(pageData, fieldData)
+            field = options.processOptionResetText(pageData, fieldData)
         elseif(fieldData.type == 'increment-text') then
-            field = options.ProcessOptionIncrementText(pageData, fieldData)
+            field = options.processOptionIncrementText(pageData, fieldData)
         elseif(fieldData.type == 'button') then
-            field = options.ProcessOptionButton(pageData, fieldData)
+            field = options.processOptionButton(pageData, fieldData)
         elseif(fieldData.type == 'dropdown') then
-            field = options.ProcessOptionDropdown(pageData, fieldData)
+            field = options.processOptionDropdown(pageData, fieldData)
         elseif(fieldData.type == 'range-slider') then
-            field = options.ProcessOptionRangeSlider(pageData, fieldData)
+            field = options.processOptionRangeSlider(pageData, fieldData)
         elseif(fieldData.type == 'choice-slider') then
-            field = options.ProcessOptionChoiceSlider(pageData, fieldData)
+            field = options.processOptionChoiceSlider(pageData, fieldData)
         elseif(fieldData.type == 'currency-picker') then
-            field = options.ProcessOptionCurrencyPicker(pageData, fieldData)
+            field = options.processOptionCurrencyPicker(pageData, fieldData)
         elseif(fieldData.type == 'item-picker') then
-            field = options.ProcessOptionItemPicker(pageData, fieldData)
+            field = options.processOptionItemPicker(pageData, fieldData)
+        elseif(fieldData.type == 'group') then
+            field = options.processOptionGroup(pageData, fieldData)
         end
         
         if(fieldData.type == 'reorder-buttons'
@@ -1011,7 +1013,7 @@ options = {
         return field, addLabel, xOffset, yOffsetNext
     end,
     ----
-    ['ProcessOptionCheckbox'] = function(pageData, fieldData)
+    ['processOptionCheckbox'] = function(pageData, fieldData)
         return options.insertOptionsCheckbox({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1029,13 +1031,14 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionRadio'] = function(pageData, fieldData)
+    ['processOptionRadio'] = function(pageData, fieldData)
         return options.insertOptionsRadio({
             ['label'] = fieldData.label,
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['defaultValue'] = options.get(fieldData.key),
             ['choices'] = fieldData.choices,
+            ['nullValue'] = fieldData.nullValue,
             ['callback'] = function(self, value)
                 options.set(fieldData.key, value)
                 core.prepareUpdate(pageData.key, fieldData.key, value)
@@ -1046,7 +1049,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionReorderButtons'] = function(pageData, fieldData)
+    ['processOptionReorderButtons'] = function(pageData, fieldData)
         return options.insertOptionsReorderButtons({
             ['key'] = pageData.key,
             ['framename'] = fieldData.framename,
@@ -1058,7 +1061,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionColour'] = function(pageData, fieldData)
+    ['processOptionColour'] = function(pageData, fieldData)
         return options.insertOptionsColourPicker({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1079,7 +1082,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionText'] = function(pageData, fieldData)
+    ['processOptionText'] = function(pageData, fieldData)
         return options.insertOptionsTextField({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1099,7 +1102,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionResetText'] = function(pageData, fieldData)
+    ['processOptionResetText'] = function(pageData, fieldData)
         return options.insertOptionsResetTextField({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1120,7 +1123,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionIncrementText'] = function(pageData, fieldData)
+    ['processOptionIncrementText'] = function(pageData, fieldData)
         return options.insertOptionsIncrementTextField({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1146,7 +1149,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionButton'] = function(pageData, fieldData)
+    ['processOptionButton'] = function(pageData, fieldData)
         return options.insertOptionsButton({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1157,7 +1160,7 @@ options = {
             ['callback'] = fieldData.callback,
         })
     end,
-    ['ProcessOptionDropdown'] = function(pageData, fieldData)
+    ['processOptionDropdown'] = function(pageData, fieldData)
         return options.insertOptionsDropdown({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1177,7 +1180,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionRangeSlider'] = function(pageData, fieldData)
+    ['processOptionRangeSlider'] = function(pageData, fieldData)
         return options.insertOptionsRangeSlider({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1206,7 +1209,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionChoiceSlider'] = function(pageData, fieldData)
+    ['processOptionChoiceSlider'] = function(pageData, fieldData)
         return options.insertOptionsChoiceSlider({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1228,7 +1231,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionCurrencyPicker'] = function(pageData, fieldData)
+    ['processOptionCurrencyPicker'] = function(pageData, fieldData)
         return options.insertOptionsCurrencyPicker({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1244,7 +1247,7 @@ options = {
             end,
         })
     end,
-    ['ProcessOptionItemPicker'] = function(pageData, fieldData)
+    ['processOptionItemPicker'] = function(pageData, fieldData)
         return options.insertOptionsItemPicker({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
@@ -1258,6 +1261,17 @@ options = {
                     fieldData.callback(pageData.key, fieldData.key, value)
                 end
             end,
+        })
+    end,
+    ['processOptionGroup'] = function(pageData, fieldData)
+        return options.insertOptionsGroup({
+            ['framename'] = fieldData.framename,
+            ['parent'] = pageData.parent,
+            ['label'] = fieldData.label,
+            ['width'] = fieldData.width or 400,
+            ['height'] = fieldData.height,
+            ['shape'] = fieldData.shape,
+            ['callback'] = fieldData.callback
         })
     end,
     ----
@@ -1429,9 +1443,11 @@ options = {
                         ['tooltip'] = choice.tooltip,
                         ['tooltipExtra'] = choice.tooltipExtra,
                         ['callback'] = function(self, value)
-                            self:Disable()
-                            self:GetPushedTexture():Hide()
-                            self:GetNormalTexture():Show()
+                            if(data.nullValue == nil) then
+                                self:Disable()
+                                self:GetPushedTexture():Hide()
+                                self:GetNormalTexture():Show()
+                            end
                         
                             for _, otherCheckbox in pairs(group.checkboxes) do
                                 if(otherCheckbox:GetName() ~= self:GetName()) then
@@ -1440,9 +1456,17 @@ options = {
                                 end
                             end
                             
-                            data.callback(group, choice.value)
+                            if(data.nullValue == nil or value) then
+                                data.callback(group, choice.value)
+                            else
+                                data.callback(group, data.nullValue)
+                            end
                         end,
                     })
+                    
+                    if(data.nullValue == nil and choice.value == data.defaultValue) then
+                        checkbox:Disable()
+                    end
                     
                     if(prev == nil) then
                         if(header) then

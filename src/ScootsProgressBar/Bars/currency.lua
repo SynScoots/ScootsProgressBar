@@ -62,7 +62,7 @@ core.updateFunctionMap[key] = function()
     else
         local newMax = options.get('currency-target')
         local newPercent = math.min(100, (newValue / newMax) * 100)
-        local optionsString = string.format('%d-%d', newItem, newMax)
+        local optionsString = string.format('%s-%d', newItem, newMax)
 
         if(core.values[key] == nil) then
             core.values[key] = {
@@ -113,10 +113,10 @@ core.textFormatFunctionMap[key] = function(text)
 end
 
 core.tooltipLineFunctionMap[key] = function()
-    local leftText = core.definedBars[key]
-    local rightText
+    local leftText, rightText
     
     if(core.values[key].itemId ~= nil) then
+        leftText = core.values[key].name
         rightText = string.format(
             '%d / %d (' .. lookup.percentFormat .. '%%)',
             core.values[key].currentValue,
@@ -124,6 +124,7 @@ core.tooltipLineFunctionMap[key] = function()
             core.values[key].percent
         )
     else
+        leftText = core.definedBars[key]
         rightText = 'None selected'
     end
     
