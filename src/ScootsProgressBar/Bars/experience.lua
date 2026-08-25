@@ -188,7 +188,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-Experience',
+    ['framename'] = 'Experience',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards next level-up.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

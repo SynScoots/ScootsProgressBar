@@ -83,7 +83,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-EquipAttune',
+    ['framename'] = 'EquipAttune',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards attuning all equipped items.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

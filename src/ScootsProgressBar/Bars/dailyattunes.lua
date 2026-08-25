@@ -103,7 +103,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-DailyAttunes',
+    ['framename'] = 'DailyAttunes',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards a daily goal of attunes.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data)

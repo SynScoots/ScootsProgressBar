@@ -163,14 +163,6 @@ interface = {
             
             options.set('pos-x', tonumber(string.format('%.1f', x)), true)
             options.set('pos-y', tonumber(string.format('%.1f', y)), true)
-            
-            --
-            --
-            --local _, _, anchor, x, y = self:GetPoint()
-            --
-            --options.set('pos-x', tonumber(string.format('%.1f', x)), true)
-            --options.set('pos-y', tonumber(string.format('%.1f', y)), true)
-            --options.set('pos-anchor', anchor, true)
         end
     end,
     ['applyVisualGeneralOption'] = function(key)

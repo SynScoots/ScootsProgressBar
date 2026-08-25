@@ -84,7 +84,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-BagSpace',
+    ['framename'] = 'BagSpace',
+    ['title'] = core.definedBars[key],
     ['description'] = 'How many bag slots you have remaining.',
     ['callback'] = options.defineStandardOptions,
 }

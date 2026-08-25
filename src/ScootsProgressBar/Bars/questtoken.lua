@@ -72,7 +72,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-QuestToken',
+    ['framename'] = 'QuestToken',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards getting a Quest Auto-Complete Token. Requires Loremaster achievement.',
     ['callback'] = options.defineStandardOptions,
 }

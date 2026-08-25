@@ -125,7 +125,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-ZoneAffixes',
+    ['framename'] = 'ZoneAffixes',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards attuning all item affixes sourced from the current zone.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

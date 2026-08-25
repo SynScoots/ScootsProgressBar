@@ -149,7 +149,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-Currency',
+    ['framename'] = 'Currency',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards getting a certain quantity of a currency.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

@@ -2,14 +2,14 @@
 ## Title: Scoots Progress Bar
 ## Author: Scoots
 ## Notes: A configurable display to show a number of different progressive statistics.
+## Version: 1.3.0
 ## SavedVariables: SCOOTSPROGRESSBAR_STORAGE
-## Version: 1.2.1
+## Dependencies: ScootsLibOptions
 
 ScootsProgressBar.lua
 ScootsProgressBar-Core.lua
 ScootsProgressBar-Interface.lua
 ScootsProgressBar-Options.lua
-ScootsProgressBar-Options-Interface.lua
 ScootsProgressBar-Utility.lua
 ScootsProgressBar-Lookup.lua
 

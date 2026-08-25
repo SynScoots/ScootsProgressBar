@@ -131,7 +131,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-Wintergrasp',
+    ['framename'] = 'Wintergrasp',
+    ['title'] = core.definedBars[key],
     ['description'] = table.concat({
         'Time until the next Wintergrasp.',
         'You need to visit the overworld while Wintergrasp is not in-progress to get a timer, and need to have done so since the last battle for the timer to not be considered "uncertain".',

@@ -174,7 +174,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-Reputation',
+    ['framename'] = 'Reputation',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards the next reputational standing with your tracked faction.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

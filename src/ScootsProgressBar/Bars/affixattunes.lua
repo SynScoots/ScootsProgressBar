@@ -35,7 +35,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-AffixAttunes',
+    ['framename'] = 'AffixAttunes',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards attuning all affixes in the game.',
     ['callback'] = options.defineStandardOptions,
 }

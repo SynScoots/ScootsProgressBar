@@ -164,7 +164,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-DungeonSpeedrun',
+    ['framename'] = 'DungeonSpeedrun',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Time left to improve your fastest run of a dungeon.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

@@ -94,7 +94,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-BagAttune',
+    ['framename'] = 'BagAttune',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards attuning all items in your inventory.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

@@ -35,7 +35,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-AccountAttunes',
+    ['framename'] = 'AccountAttunes',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards attuning all items in the game.',
     ['callback'] = options.defineStandardOptions,
 }

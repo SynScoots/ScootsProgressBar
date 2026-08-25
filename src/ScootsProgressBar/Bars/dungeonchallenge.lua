@@ -122,7 +122,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-DungeonChallenge',
+    ['framename'] = 'DungeonChallenge',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards completing the current dungeon challenge.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data)

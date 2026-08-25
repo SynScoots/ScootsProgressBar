@@ -152,7 +152,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-Items',
+    ['framename'] = 'Items',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards getting a certain quantity of an item.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

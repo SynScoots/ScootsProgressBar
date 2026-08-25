@@ -35,7 +35,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-CharacterAttunes',
+    ['framename'] = 'CharacterAttunes',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards attuning all items useable by your character.',
     ['callback'] = options.defineStandardOptions,
 }

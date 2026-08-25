@@ -1,20 +1,53 @@
-local storage = ScootsProgressBar.storage
-local core = ScootsProgressBar.core
-local options
-local frames = ScootsProgressBar.frames
-local interface = ScootsProgressBar.interface
-local utility = ScootsProgressBar.utility
-local lookup = ScootsProgressBar.lookup
+ScootsLibOptions = {
+    ['processOptionMap'] = {},
+    ['insertFieldCallbacks'] = {},
+    ['defaultTypes'] = {
+        ['checkbox'] = true,
+        ['radio'] = true,
+        ['colour'] = true,
+        ['text'] = true,
+        ['reset-text'] = true,
+        ['increment-text'] = true,
+        ['button'] = true,
+        ['dropdown'] = true,
+        ['range-slider'] = true,
+        ['choice-slider'] = true,
+        ['currency-picker'] = true,
+        ['item-picker'] = true,
+        ['group'] = true,
+    },
+    ['rarityColours'] = {
+        [0] = {0.615, 0.615, 0.615},
+        [1] = {1, 1, 1},
+        [2] = {0.118, 1, 0},
+        [3] = {0, 0.439, 0.867},
+        [4] = {0.639, 0.208, 0.933},
+        [5] = {1, 0.502, 0},
+        [6] = {0.902, 0.8, 0.502},
+        [7] = {0.902, 0.8, 0.502},
+    },
+    ['registerCustomField'] = function(key, callback, postInsertCallback)
+        if(ScootsLibOptions.processOptionMap[key] ~= nil) then
+            return
+        end
+        
+        ScootsLibOptions.processOptionMap[key] = callback
+        ScootsLibOptions.insertFieldCallbacks[key] = postInsertCallback
+    end,
+}
 
-options = {
-    ['createOptionsInterface'] = function()
-        frames.options.main = options.insertOptionsPanel({
-            ['framename'] = 'ScootsProgressBar-Options',
-            ['name'] = ScootsProgressBar.title,
+ScootsLibOptions.core = {
+    ['createOptionsInterface'] = function(frames, fieldKeys, parentAddon, optionPageDefinitions, postBuildCallback)
+        InterfaceOptionsFrame:SetWidth(math.max(900, InterfaceOptionsFrame:GetWidth()))
+        
+        return ScootsLibOptions.core.insertOptionsPanel({
+            ['parentAddon'] = parentAddon,
+            ['framename'] = parentAddon.framename,
+            ['name'] = parentAddon.title,
             ['noScroll'] = true,
             ['callback'] = function(parent, prior)
-                local menuArtwork = options.insertOptionsGroup({
-                    ['framename'] = 'ScootsProgressBar-Options-MenuArtwork',
+                local menuArtwork = ScootsLibOptions.core.insertOptionsGroup({
+                    ['framename'] = parentAddon.framename .. '-MenuArtwork',
                     ['parent'] = parent,
                     ['width'] = 190,
                     ['height'] = 363,
@@ -23,8 +56,8 @@ options = {
                 
                 menuArtwork:SetPoint('TOPLEFT', prior, 'BOTTOMLEFT', 0, -15)
                 
-                local menuScrollFrame, menuScrollChild = options.insertOptionsScrollFrame({
-                    ['framename'] = 'ScootsProgressBar-Options-Menu',
+                local menuScrollFrame, menuScrollChild = ScootsLibOptions.core.insertOptionsScrollFrame({
+                    ['framename'] = parentAddon.framename .. '-Menu',
                     ['parent'] = menuArtwork,
                     ['width'] = menuArtwork:GetWidth(),
                 })
@@ -34,8 +67,8 @@ options = {
                 
                 --
                 
-                local contentArtwork = options.insertOptionsGroup({
-                    ['framename'] = 'ScootsProgressBar-Options-ContentArtwork',
+                local contentArtwork = ScootsLibOptions.core.insertOptionsGroup({
+                    ['framename'] = parentAddon.framename .. '-ContentArtwork',
                     ['parent'] = parent,
                     ['width'] = 455,
                     ['height'] = menuArtwork:GetHeight(),
@@ -45,8 +78,8 @@ options = {
                 contentArtwork:SetPoint('TOPLEFT', menuArtwork, 'TOPRIGHT', -12, 0)
                 contentArtwork:SetFrameLevel(menuArtwork:GetFrameLevel() + 1)
                 
-                local contentHolder = options.insertOptionsScrollFrame({
-                    ['framename'] = 'ScootsProgressBar-Options-ContentHolder',
+                local contentHolder = ScootsLibOptions.core.insertOptionsScrollFrame({
+                    ['framename'] = parentAddon.framename .. '-ContentHolder',
                     ['parent'] = contentArtwork,
                     ['noChild'] = true,
                 })
@@ -72,133 +105,57 @@ options = {
                 
                 --
                 
-                frames.options.menuArtwork = menuArtwork
-                frames.options.menuScrollFrame = menuScrollFrame
-                frames.options.menuScrollChild = menuScrollChild
-                frames.options.contentArtwork = contentArtwork
-                frames.options.contentHolder = contentHolder
+                frames.menuArtwork = menuArtwork
+                frames.menuScrollFrame = menuScrollFrame
+                frames.menuScrollChild = menuScrollChild
+                frames.contentArtwork = contentArtwork
+                frames.contentHolder = contentHolder
                 
                 --
                 
-                frames.options.menuLinks = {}
-                frames.options.optionPages = {}
+                frames.menuLinks = {}
+                frames.optionPages = {}
                 
-                frames.options.menuLinks = {}
-                frames.options.optionPages = {}
-                
-                for key, data in pairs(options.optionPageDefinitions) do
-                    local menuLink = options.insertMenuLink({
-                        ['framename'] = data.framename .. '-MenuLink',
+                for key, data in pairs(optionPageDefinitions) do
+                    local menuLink = ScootsLibOptions.core.insertMenuLink({
+                        ['framename'] = string.format('%s-%s-%s', parentAddon.framename, data.framename, 'MenuLink'),
                         ['parent'] = menuScrollChild,
-                        ['label'] = data.title or core.definedBars[key],
+                        ['label'] = data.title,
                         ['width'] = menuScrollChild:GetWidth() - 32,
                         ['callback'] = function(self)
-                            for _, link in pairs(frames.options.menuLinks) do
+                            for _, link in pairs(frames.menuLinks) do
                                 link.select(false)
                             end
                             
                             self.select()
-                            contentHolder.setActiveChild(frames.options.optionPages[key])
+                            contentHolder.setActiveChild(frames.optionPages[key])
                         end,
                     })
                     
-                    menuLink.fade(options.get(key .. '-enabled') == false)
-                    frames.options.menuLinks[key] = menuLink
+                    frames.menuLinks[key] = menuLink
                     
                     --
                     
-                    local optionPage = options.insertOptionsPage({
+                    local optionPage = ScootsLibOptions.core.insertOptionsPage(frames, fieldKeys, {
+                        ['parentAddon'] = parentAddon,
                         ['key'] = key,
                         ['framename'] = data.framename,
                         ['parent'] = contentHolder,
                         ['width'] = contentHolder:GetWidth() - contentHolder.scrollBar:GetWidth(),
-                        ['title'] = data.title or core.definedBars[key],
+                        ['title'] = data.title,
                         ['description'] = data.description,
                         ['callback'] = data.callback,
                         ['special'] = data.special,
                     })
                     
-                    frames.options.optionPages[key] = optionPage
+                    frames.optionPages[key] = optionPage
                 end
                 
-                frames.options.menuLinks.general.select()
-                contentHolder.setActiveChild(frames.options.optionPages.general)
-                options.sortMenuLinks()
-            end,
-        })
-        
-        frames.options.profileSelect = options.insertOptionsDropdown({
-            ['framename'] = 'ScootsProgressBar-Options-ProfileSelect',
-            ['parent'] = frames.options.main,
-            ['defaultValue'] = storage.options.activeProfile[core.player.guid],
-            ['label'] = 'Profile',
-            ['tooltip'] = 'Profiles allow you to have different options on different characters.',
-            ['callback'] = function(self, profile)
-                options.setActiveProfile(profile)
-            end,
-            ['choices'] = function()
-                local profileList = {}
-                
-                for key, _ in pairs(storage.options.profiles) do
-                    table.insert(profileList, {
-                        ['name'] = key,
-                        ['value'] = key,
-                    })
+                if(postBuildCallback ~= nil) then
+                    postBuildCallback()
                 end
-                
-                table.sort(profileList, function(profileA, profileB)
-                    if(profileA.value == 'Default') then
-                        return true
-                    elseif(profileB.value == 'Default') then
-                        return false
-                    end
-                    
-                    return profileA.name < profileB.name
-                end)
-                
-                return profileList
             end,
         })
-        
-        frames.options.profileSelect:SetPoint('TOPRIGHT', frames.options.main, 'TOPRIGHT', -16, -20)
-    end,
-    ['sortMenuLinks'] = function()
-        frames.options.menuLinks['general']:SetPoint('TOPLEFT', frames.options.menuScrollChild, 'TOPLEFT', 0, -8)
-        local height = frames.options.menuLinks['general']:GetHeight() + 8
-        
-        frames.options.menuLinks['text']:SetPoint('TOPLEFT', frames.options.menuLinks['general'], 'BOTTOMLEFT', 0, 0)
-        height = height + frames.options.menuLinks['text']:GetHeight()
-        
-        frames.options.menuLinks['appearance']:SetPoint('TOPLEFT', frames.options.menuLinks['text'], 'BOTTOMLEFT', 0, 0)
-        height = height + frames.options.menuLinks['appearance']:GetHeight()
-        
-        frames.options.menuLinks['position']:SetPoint('TOPLEFT', frames.options.menuLinks['appearance'], 'BOTTOMLEFT', 0, 0)
-        height = height + frames.options.menuLinks['position']:GetHeight()
-        
-        frames.options.menuLinks['profiles']:SetPoint('TOPLEFT', frames.options.menuLinks['position'], 'BOTTOMLEFT', 0, 0)
-        height = height + frames.options.menuLinks['profiles']:GetHeight()
-        
-        frames.options.menuLinks['data']:SetPoint('TOPLEFT', frames.options.menuLinks['profiles'], 'BOTTOMLEFT', 0, 0)
-        height = height + frames.options.menuLinks['data']:GetHeight()
-        
-        local prevLink = frames.options.menuLinks['data']
-        local first = true
-        
-        for index, data in ipairs(core.barOrder) do
-            if(options.optionPageDefinitions[data.key]) then
-                local offset = (first and 10) or 0
-                
-                local menuLink = frames.options.menuLinks[data.key]
-                menuLink:SetPoint('TOPLEFT', prevLink, 'BOTTOMLEFT', 0, 0 - offset)
-                menuLink.fade(options.get(data.key .. '-enabled') == false)
-                
-                prevLink = menuLink
-                height = height + menuLink:GetHeight() + offset
-                first = nil
-            end
-        end
-        
-        frames.options.menuScrollChild:SetHeight(height + 8)
     end,
     ['insertOptionsPanel'] = function(data)
         local panel = CreateFrame('Frame', data.framename)
@@ -215,7 +172,7 @@ options = {
             end
             
             if(data.noScroll ~= true) then
-                scrollFrame = options.insertOptionsScrollFrame({
+                scrollFrame = ScootsLibOptions.core.insertOptionsScrollFrame({
                     ['framename'] = data.framename,
                     ['parent'] = panel,
                     ['width'] = 663,
@@ -233,11 +190,11 @@ options = {
             
             bottomLevel.titleText = bottomLevel:CreateFontString(nil, 'OVERLAY', 'GameFontNormalLarge')
             bottomLevel.titleText:SetPoint('TOPLEFT', bottomLevel, 'TOPLEFT', 16, (data.noScroll == true and -20) or -15)
-            bottomLevel.titleText:SetText(ScootsProgressBar.title)
+            bottomLevel.titleText:SetText(data.parentAddon.title)
         
             bottomLevel.versionText = bottomLevel:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
             bottomLevel.versionText:SetPoint('BOTTOMLEFT', bottomLevel.titleText, 'BOTTOMRIGHT', 5, 1)
-            bottomLevel.versionText:SetText(ScootsProgressBar.version)
+            bottomLevel.versionText:SetText(data.parentAddon.version)
             bottomLevel.versionText:SetTextColor(0.6, 0.98, 0.6)
             
             height = height + bottomLevel.titleText:GetHeight()
@@ -337,8 +294,8 @@ options = {
         
         return link
     end,
-    ['insertOptionsPage'] = function(data)
-        local page = CreateFrame('Frame', data.framename .. '-OptionsPage', data.parent)
+    ['insertOptionsPage'] = function(frames, fieldKeys, data)
+        local page = CreateFrame('Frame', string.format('%s-%s-%s', data.parentAddon.framename, data.framename, 'OptionsPage'), data.parent)
         page:SetWidth(data.width)
         page:Hide()
         
@@ -364,19 +321,16 @@ options = {
             
             local firstField, subHeight, xOffset, yOffset
             
-            if(data.special == 'profiles') then
-                firstField, subHeight = options.buildProfileManager({
-                    ['framename'] = data.framename,
-                    ['parent'] = self,
-                })
-            elseif(data.special == 'data') then
-                firstField, subHeight = options.buildDataManager({
+            if(data.special == true) then
+                firstField, subHeight, xOffset, yOffset = data.callback({
+                    ['key'] = data.key,
                     ['framename'] = data.framename,
                     ['parent'] = self,
                 })
             else
-                frames.options[data.key] = {}
-                firstField, subHeight, xOffset, yOffset = options.processOptionsFieldList({
+                frames[data.key] = {}
+                firstField, subHeight, xOffset, yOffset = ScootsLibOptions.core.processOptionsFieldList(frames, fieldKeys, {
+                    ['parentAddon'] = data.parentAddon,
                     ['key'] = data.key,
                     ['framename'] = data.framename,
                     ['parent'] = self,
@@ -394,492 +348,7 @@ options = {
         
         return page
     end,
-    ['buildProfileManager'] = function(data)
-        local height = 0
-    
-        local createNew = options.insertOptionsGroup({
-            ['framename'] = data.framename .. '-CreateNew',
-            ['parent'] = data.parent,
-            ['label'] = 'Create new profile',
-            ['width'] = 400,
-            ['callback'] = function(group, header)
-                group.getDefaultProfileName = function()
-                    local name = string.format('%s - %s %s', core.player.name, core.player.race, core.player.class)
-                    local tryNameCount = 1
-                    
-                    while(storage.options.profiles[name] ~= nil) do
-                        name = string.format('%s (%d)', name:gsub(' %(%d+%)$', ''), tryNameCount)
-                        tryNameCount = tryNameCount + 1
-                    end
-                    
-                    return name
-                end
-                
-                --
-                
-                group.info = group:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
-                group.info:SetPoint('TOPLEFT', header, 'BOTTOMLEFT', 0, -10)
-                group.info:SetWidth(380)
-                group.info:SetJustifyH('LEFT')
-                group.info:SetWordWrap(true)
-                group.info:SetText('New profiles are created as clones of the currently selected profile.')
-                
-                height = group.info:GetHeight()
-                
-                --
-                
-                local textbox = options.insertOptionsTextField({
-                    ['framename'] = data.framename .. '-CreateNew-Textbox',
-                    ['parent'] = group,
-                    ['label'] = 'Profile name',
-                    ['width'] = 280,
-                    ['justify'] = 'LEFT',
-                    ['default'] = group.getDefaultProfileName(),
-                    ['callback'] = function(self, value)
-                        if(self.suppressCallback) then
-                            self.suppressCallback = nil
-                            return
-                        end
-                        
-                        group.error:Hide()
-                    end,
-                })
-                
-                textbox:SetPoint('TOPLEFT', group.info, 'BOTTOMLEFT', 0, -20)
-        
-                textbox:SetScript('OnEditFocusLost', function(self)
-                    if(self:GetText():gsub('^%s+', ''):gsub('%s+$', '') == '') then
-                        self.suppressCallback = true
-                        self:SetText(group.getDefaultProfileName())
-                    end
-                end)
-                
-                --
-                
-                group.error = group:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
-                group.error:SetPoint('TOPLEFT', textbox, 'BOTTOMLEFT', 0, 0)
-                group.error:SetTextColor(1, 0, 0)
-                group.error:Hide()
-                
-                --
-        
-                local button = options.insertOptionsButton({
-                    ['framename'] = data.framename .. '-CreateNew-Button',
-                    ['parent'] = group,
-                    ['width'] = 100,
-                    ['text'] = 'Create',
-                    ['callback'] = function()
-                        local profileName = textbox:GetText():gsub('^%s+', ''):gsub('%s+$', '')
-                        
-                        if(profileName == '') then
-                            group.error:SetText('Profile name cannot be blank')
-                            group.error:Show()
-                            return
-                        elseif(storage.options.profiles[profileName] ~= nil) then
-                            group.error:SetText('A profile with that name already exists.')
-                            group.error:Show()
-                            return
-                        end
-                        
-                        storage.options.profiles[profileName] = {}
-                        
-                        for key, value in pairs(storage.options.profiles[storage.options.activeProfile[core.player.guid]]) do
-                            storage.options.profiles[profileName][key] = value
-                        end
-                        
-                        options.setActiveProfile(profileName)
-                        data.parent.drawExistingProfiles()
-                        textbox:SetText(group.getDefaultProfileName())
-                    end,
-                })
-                
-                button:SetPoint('LEFT', textbox, 'RIGHT', 0, 0)
-                
-                --
-                
-                return height + math.max(textbox:GetHeight(), button:GetHeight()) + 40
-            end,
-        })
-        
-        height = height + createNew:GetHeight() + 10
-        
-        --
-        
-        local headers = {
-            ['name'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall'),
-            ['used'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall'),
-        }
-        
-        headers.name:SetPoint('TOPLEFT', createNew, 'BOTTOMLEFT', 4, -10)
-        headers.name:SetText(' \nProfile')
-        headers.name:SetJustifyH('LEFT')
-        
-        headers.used:SetPoint('TOPLEFT', headers.name, 'TOPRIGHT', 5, 0)
-        headers.used:SetText('Used by\ncharacters')
-        headers.used:SetJustifyH('CENTER')
-        headers.used:SetWidth(60)
-        
-        headers.name:SetWidth(-4 + 400 - (4 + headers.used:GetWidth() + 4 + 50 + 4 + 50 + 4))
-        
-        height = height + headers.name:GetHeight() + 2
-        
-        data.parent.drawExistingProfiles = function()
-            local profileList = {}
-            
-            for key, _ in pairs(storage.options.profiles) do
-                table.insert(profileList, key)
-            end
-            
-            table.sort(profileList, function(profileA, profileB)
-                if(profileA == 'Default') then
-                    return true
-                elseif(profileB == 'Default') then
-                    return false
-                end
-                
-                return profileA < profileB
-            end)
-            
-            --
-            
-            data.objects = data.objects or {}
-            
-            local prev = headers
-            local tableHeight = 0
-            
-            local profileUsage = {}
-            
-            for _, profile in pairs(storage.options.activeProfile) do
-                profileUsage[profile] = (profileUsage[profile] or 0) + 1
-            end
-            
-            --
-            
-            for index, profile in ipairs(profileList) do
-                local objects = data.objects[index]
-            
-                if(objects == nil) then
-                    table.insert(data.objects, {
-                        ['name'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall'),
-                        ['used'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall'),
-                        ['background'] = data.parent:CreateTexture(nil, 'ARTWORK'),
-                        ['reset'] = options.insertOptionsButton({
-                            ['framename'] = data.framename .. '-Reset-' .. tostring(index),
-                            ['parent'] = data.parent,
-                            ['width'] = 50,
-                            ['text'] = 'Reset',
-                            ['tooltip'] = 'Reset all options back to the addon default values for this profile.',
-                            ['callback'] = function(self)
-                                options.doConfirm({
-                                    ['text'] = 'This will reset all options for this profile back to the addon default values.\n\nThis action cannot be automatically undone.\n\nContinue?',
-                                    ['callback'] = function()
-                                        storage.options.profiles[self.profile] = {}
-                                        
-                                        if(self.profile == storage.options.activeProfile[core.player.guid]) then
-                                            options.setActiveProfile(self.profile)
-                                        end
-                                    end,
-                                })
-                            end,
-                        }),
-                        ['delete'] = options.insertOptionsButton({
-                            ['framename'] = data.framename .. '-Delete-' .. tostring(index),
-                            ['parent'] = data.parent,
-                            ['width'] = 50,
-                            ['text'] = 'Delete',
-                            ['callback'] = function(self)
-                                options.doConfirm({
-                                    ['text'] = string.format('Are you sure you want to delete the profile "%s"?\n\nThis action cannot be automatically undone.', self.profile),
-                                    ['callback'] = function()
-                                        storage.options.profiles[self.profile] = nil
-                                        
-                                        if(self.profile == storage.options.activeProfile[core.player.guid]) then
-                                            options.setActiveProfile('Default')
-                                        end
-                                        
-                                        data.parent.drawExistingProfiles()
-                                    end,
-                                })
-                            end,
-                        }),
-                    })
-                    
-                    objects = data.objects[index]
-                    
-                    objects.name:SetJustifyH('LEFT')
-                    objects.name:SetWordWrap(true)
-                    objects.name:SetNonSpaceWrap(true)
-                    objects.name:SetWidth(headers.name:GetWidth())
-                    
-                    objects.used:SetPoint('TOPLEFT', objects.name, 'TOPRIGHT', 4, 0)
-                    objects.used:SetJustifyH('CENTER')
-                    objects.used:SetWidth(headers.used:GetWidth())
-                    
-                    objects.background:SetPoint('TOPLEFT', objects.name, 'TOPLEFT', -4, 2)
-                    objects.background:SetPoint('BOTTOMLEFT', objects.name, 'BOTTOMLEFT', -4, -2)
-                    objects.background:SetWidth(400)
-                    objects.background:SetTexture(0.7, 0.7, 1, 0.1)
-                    
-                    objects.reset:SetPoint('LEFT', objects.used, 'RIGHT', 4, 0)
-                    objects.delete:SetPoint('LEFT', objects.reset, 'RIGHT', 4, 0)
-                end
-                
-                objects.name:Show()
-                objects.used:Show()
-                objects.reset:Show()
-                
-                if(index % 2 == 1) then
-                    objects.background:Show()
-                else
-                    objects.background:Hide()
-                end
-                
-                if(profile ~= 'Default') then
-                    objects.delete:Show()
-                else
-                    objects.delete:Hide()
-                end
-                
-                objects.name:SetPoint('TOPLEFT', prev.name, 'BOTTOMLEFT', 0, -4)
-                objects.name:SetText(profile)
-                objects.name:SetHeight(0)
-                objects.name:SetHeight(math.max(objects.name:GetHeight(), objects.reset:GetHeight()))
-                
-                objects.used:SetHeight(objects.name:GetHeight())
-                objects.used:SetText(tostring(profileUsage[profile] or 0))
-                
-                objects.reset.profile = profile
-                objects.delete.profile = profile
-                
-                height = height + objects.name:GetHeight() + 4
-                prev = objects
-            end
-            
-            for index = (#profileList + 1), #data.objects do
-                local objects = data.objects[index]
-                
-                objects.name:Hide()
-                objects.used:Hide()
-                objects.background:Hide()
-                objects.reset:Hide()
-                objects.delete:Hide()
-            end
-            
-            --
-            
-            return tableHeight
-        end
-        
-        height = height + data.parent.drawExistingProfiles() + 10
-        
-        --
-        
-        return createNew, height
-    end,
-    ['buildDataManager'] = function(data)
-        local height = 0
-    
-        local autoDeleteOptions = options.insertOptionsGroup({
-            ['framename'] = data.framename .. '-AutoDelete',
-            ['parent'] = data.parent,
-            ['width'] = 400,
-            ['callback'] = function(group)
-                local groupHeight = 10
-                
-                local checkbox = options.insertOptionsCheckbox({
-                    ['framename'] = data.framename .. '-AutoDelete',
-                    ['parent'] = group,
-                    ['label'] = 'Auto-delete character data after',
-                    ['defaultState'] = storage.options.autoDeleteOldCharacters,
-                    ['callback'] = function(self, value)
-                        storage.options.autoDeleteOldCharacters = value
-                    end,
-                })
-                
-                checkbox:SetPoint('TOPLEFT', group, 'TOPLEFT', 10, -10)
-                
-                --
-                
-                textbox = options.insertOptionsIncrementTextField({
-                    ['framename'] = data.framename .. '-AutoDeleteDelay',
-                    ['parent'] = group,
-                    ['label'] = 'days of inactivity.',
-                    ['width'] = 50,
-                    ['justify'] = 'CENTER',
-                    ['default'] = storage.options.autoDeleteOldCharactersDelay,
-                    ['increment'] = 1,
-                    ['min'] = 1,
-                    ['callback'] = function(self, value)
-                        storage.options.autoDeleteOldCharactersDelay = value
-                    end,
-                })
-                
-                textbox:SetPoint('LEFT', checkbox.label, 'RIGHT', 2 + textbox.incrementDown:GetWidth() + 1, 0)
-                
-                textbox.label:ClearAllPoints()
-                textbox.label:SetPoint('LEFT', textbox.incrementUp, 'RIGHT', 2, 0)
-                
-                groupHeight = groupHeight + math.max(checkbox:GetHeight(), textbox:GetHeight()) + 10
-                
-                --
-                
-                group.info = group:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall')
-                group.info:SetPoint('TOPLEFT', checkbox, 'BOTTOMLEFT', 0, -10)
-                group.info:SetWidth(380)
-                group.info:SetJustifyH('LEFT')
-                group.info:SetWordWrap(true)
-                group.info:SetText('Character data auto-deletion occurs when you login to a character, or when you reload your UI.')
-                
-                groupHeight = groupHeight + group.info:GetHeight() + 10
-                
-                --
-                
-                return groupHeight
-            end,
-        })
-        
-        height = height + autoDeleteOptions:GetHeight() + 10
-        
-        --
-        
-        local headers = {
-            ['char'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall'),
-            ['seen'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall'),
-        }
-        
-        headers.char:SetPoint('TOPLEFT', autoDeleteOptions, 'BOTTOMLEFT', 4, -10)
-        headers.char:SetText('Character')
-        headers.char:SetJustifyH('LEFT')
-        
-        headers.seen:SetPoint('TOPLEFT', headers.char, 'TOPRIGHT', 5, 0)
-        headers.seen:SetText('Last seen')
-        headers.seen:SetJustifyH('LEFT')
-        headers.seen:SetWidth(150)
-        
-        headers.char:SetWidth(-4 + 400 - (4 + headers.seen:GetWidth() + 4 + 50 + 4))
-        
-        height = height + headers.char:GetHeight() + 2
-        
-        data.parent.drawCharacters = function()
-            local characterList = {}
-            
-            for _, character in pairs(storage.characters) do
-                table.insert(characterList, character)
-            end
-            
-            table.sort(characterList, function(characterA, characterB)
-                if(characterA.guid == core.player.guid) then
-                    return true
-                elseif(characterB.guid == core.player.guid) then
-                    return false
-                elseif(characterA.name == characterB.name) then
-                    return characterA.timestamp < characterB.timestamp
-                end
-                
-                return characterA.name < characterB.name
-            end)
-            
-            --
-            
-            data.objects = data.objects or {}
-            
-            local prev = headers
-            local tableHeight = 0
-            
-            --
-            
-            for index, character in ipairs(characterList) do
-                local objects = data.objects[index]
-            
-                if(objects == nil) then
-                    table.insert(data.objects, {
-                        ['char'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall'),
-                        ['seen'] = data.parent:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall'),
-                        ['background'] = data.parent:CreateTexture(nil, 'ARTWORK'),
-                        ['delete'] = options.insertOptionsButton({
-                            ['framename'] = data.framename .. '-Delete-' .. tostring(index),
-                            ['parent'] = data.parent,
-                            ['width'] = 50,
-                            ['text'] = 'Delete',
-                            ['callback'] = function(self)
-                                utility.deleteAllDataForCharacter(self.guid)
-                                data.parent.drawCharacters()
-                            
-                                if(frames.options.optionPages.profiles and frames.options.optionPages.profiles.drawExistingProfiles) then
-                                    frames.options.optionPages.profiles.drawExistingProfiles()
-                                end
-                            end,
-                        }),
-                    })
-                    
-                    objects = data.objects[index]
-                    
-                    objects.char:SetJustifyH('LEFT')
-                    objects.char:SetWidth(headers.char:GetWidth())
-                    
-                    objects.seen:SetPoint('TOPLEFT', objects.char, 'TOPRIGHT', 4, 0)
-                    objects.seen:SetJustifyH('LEFT')
-                    objects.seen:SetWidth(headers.seen:GetWidth())
-                    
-                    objects.background:SetPoint('TOPLEFT', objects.char, 'TOPLEFT', -4, 2)
-                    objects.background:SetPoint('BOTTOMLEFT', objects.char, 'BOTTOMLEFT', -4, -2)
-                    objects.background:SetWidth(400)
-                    objects.background:SetTexture(0.7, 0.7, 1, 0.1)
-                    
-                    objects.delete:SetPoint('LEFT', objects.seen, 'RIGHT', 4, 0)
-                end
-                
-                objects.char:Show()
-                objects.seen:Show()
-                objects.delete:Show()
-                
-                if(index % 2 == 1) then
-                    objects.background:Show()
-                else
-                    objects.background:Hide()
-                end
-                
-                if(character.guid ~= core.player.guid) then
-                    objects.seen:SetText(date('%d %B %Y\n%H:%M', character.timestamp):gsub('^0', ''))
-                    objects.delete:Show()
-                else
-                    objects.seen:SetText('Now')
-                    objects.delete:Hide()
-                end
-                
-                objects.char:SetPoint('TOPLEFT', prev.char, 'BOTTOMLEFT', 0, -4)
-                objects.char:SetText(string.format('%s\nLevel %d %s %s', character.name, character.level, character.race, character.class))
-                objects.char:SetHeight(math.max(objects.char:GetHeight(), objects.delete:GetHeight()))
-                
-                objects.seen:SetHeight(objects.char:GetHeight())
-                
-                objects.delete.guid = character.guid
-                
-                height = height + objects.char:GetHeight() + 4
-                prev = objects
-            end
-            
-            for index = (#characterList + 1), #data.objects do
-                local objects = data.objects[index]
-                
-                objects.char:Hide()
-                objects.seen:Hide()
-                objects.background:Hide()
-                objects.delete:Hide()
-            end
-            
-            --
-            
-            return tableHeight
-        end
-        
-        height = height + data.parent.drawCharacters() + 10
-        
-        --
-        
-        return autoDeleteOptions, height
-    end,
-    ['processOptionsFieldList'] = function(pageData)
+    ['processOptionsFieldList'] = function(frames, fieldKeys, pageData)
         local fieldList = pageData.callback({
             ['key'] = pageData.key,
             ['framename'] = pageData.framename,
@@ -893,8 +362,6 @@ options = {
         local exportXOffset = 0
         local exportYOffset = 0
         
-        options.fieldKeys = options.fieldKeys or {}
-        
         for _, fieldData in pairs(fieldList) do
             local xOffset = 0
             local yOffset = 0
@@ -906,124 +373,107 @@ options = {
                 yOffsetNext = 0
             end
             
-            field, addLabel, xOffset, yOffsetNext = options.processOptionField(pageData, fieldData)
+            field, addLabel, xOffset, yOffsetNext = ScootsLibOptions.core.processOptionField(pageData, fieldData, prevType)
             
-            if(fieldData.type == 'range-slider'
-            or fieldData.type == 'choice-slider') then
-                if(prevType == 'dropdown') then
-                    yOffset = 0
+            if(fieldData.customPosition == nil) then
+                if(fieldData.type == 'range-slider'
+                or fieldData.type == 'choice-slider') then
+                    if(prevType == 'dropdown') then
+                        yOffset = 0
+                    end
                 end
-            end
             
-            height = height + field:GetHeight()
-                
-            if(addLabel) then
-                height = height + field.label:GetHeight()
-            end
-            
-            if(firstField == nil) then
-                firstField = field
-                exportXOffset = xOffset
-                xOffsetNext = xOffset
-                
+                height = height + field:GetHeight()
+                    
                 if(addLabel) then
-                    exportYOffset = field.label:GetHeight()
+                    height = height + field.label:GetHeight()
                 end
+            
+                if(firstField == nil) then
+                    firstField = field
+                    exportXOffset = xOffset
+                    xOffsetNext = xOffset
+                    
+                    if(addLabel) then
+                        exportYOffset = field.label:GetHeight()
+                    end
+                else
+                    field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - xOffsetPrev) - xOffsetNext, 0 - (spacing + yOffset))
+                    height = height + spacing + yOffset
+                    
+                    if(addLabel) then
+                        field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - xOffsetPrev) - xOffsetNext, 0 - (spacing + field.label:GetHeight() + yOffset))
+                    end
+                    
+                    xOffsetPrev = xOffset
+                    xOffsetNext = 0
+                end
+                
+                prev = field
+                prevType = fieldData.type
             else
-                field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - xOffsetPrev) - xOffsetNext, 0 - (spacing + yOffset))
-                height = height + spacing + yOffset
-                
-                if(addLabel) then
-                    field:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', (xOffset - xOffsetPrev) - xOffsetNext, 0 - (spacing + field.label:GetHeight() + yOffset))
-                end
-                
-                xOffsetPrev = xOffset
-                xOffsetNext = 0
+                field:SetPoint(fieldData.customPosition[1], prev, fieldData.customPosition[2], fieldData.customPosition[3], fieldData.customPosition[4])
             end
             
-            options.fieldKeys[fieldData.key] = field
-            frames.options[pageData.key][fieldData.key] = field
-            prev = field
-            prevType = fieldData.type
-            addLabel = false
+            fieldKeys[fieldData.key] = field
+            frames[pageData.key][fieldData.key] = field
         end
         
         height = height + yOffsetNext + 20
         
         return firstField, height, exportXOffset, exportYOffset
     end,
-    ['processOptionField'] = function(pageData, fieldData)
+    ['processOptionField'] = function(pageData, fieldData, prevType)
         local field
         local addLabel = false
         local xOffset, yOffsetNext = 0, 0
         
-        if(fieldData.type == 'checkbox') then
-            field = options.processOptionCheckbox(pageData, fieldData)
-        elseif(fieldData.type == 'radio') then
-            field = options.processOptionRadio(pageData, fieldData)
-        elseif(fieldData.type == 'reorder-buttons') then
-            field = options.processOptionReorderButtons(pageData, fieldData)
-        elseif(fieldData.type == 'colour') then
-            field = options.processOptionColour(pageData, fieldData)
-        elseif(fieldData.type == 'text') then
-            field = options.processOptionText(pageData, fieldData)
-        elseif(fieldData.type == 'reset-text') then
-            field = options.processOptionResetText(pageData, fieldData)
-        elseif(fieldData.type == 'increment-text') then
-            field = options.processOptionIncrementText(pageData, fieldData)
-        elseif(fieldData.type == 'button') then
-            field = options.processOptionButton(pageData, fieldData)
-        elseif(fieldData.type == 'dropdown') then
-            field = options.processOptionDropdown(pageData, fieldData)
-        elseif(fieldData.type == 'range-slider') then
-            field = options.processOptionRangeSlider(pageData, fieldData)
-        elseif(fieldData.type == 'choice-slider') then
-            field = options.processOptionChoiceSlider(pageData, fieldData)
-        elseif(fieldData.type == 'currency-picker') then
-            field = options.processOptionCurrencyPicker(pageData, fieldData)
-        elseif(fieldData.type == 'item-picker') then
-            field = options.processOptionItemPicker(pageData, fieldData)
-        elseif(fieldData.type == 'group') then
-            field = options.processOptionGroup(pageData, fieldData)
+        if(ScootsLibOptions.processOptionMap[fieldData.type] == nil) then
+            return
         end
         
-        if(fieldData.type == 'reorder-buttons'
-        or fieldData.type == 'text'
-        or fieldData.type == 'reset-text'
-        or fieldData.type == 'increment-text'
-        or fieldData.type == 'dropdown'
-        or fieldData.type == 'range-slider'
-        or fieldData.type == 'choice-slider') then
-            addLabel = ((fieldData.label or '') ~= '')
-        end
+        fieldData.framename = string.format('%s-%s', pageData.parentAddon.framename, fieldData.framename)
+        field = ScootsLibOptions.processOptionMap[fieldData.type](pageData, fieldData)
         
-        if(fieldData.type == 'range-slider'
-        or fieldData.type == 'choice-slider') then
-            xOffset = 5
-        elseif(fieldData.type == 'increment-text') then
-            xOffset = (fieldData.height or 20) + 1
-        end
-        
-        if(fieldData.type == 'range-slider') then
-            yOffsetNext = field.textbox:GetHeight() + (select(4, field.lowText:GetPoint()))
-        elseif(fieldData.type == 'choice-slider') then
-            yOffsetNext = field.currentText:GetHeight() + (select(4, field.lowText:GetPoint()))
+        if(ScootsLibOptions.defaultTypes[fieldData.type]) then
+            if(fieldData.type == 'text'
+            or fieldData.type == 'reset-text'
+            or fieldData.type == 'increment-text'
+            or fieldData.type == 'dropdown'
+            or fieldData.type == 'range-slider'
+            or fieldData.type == 'choice-slider') then
+                addLabel = ((fieldData.label or '') ~= '')
+            end
+            
+            if(fieldData.type == 'range-slider'
+            or fieldData.type == 'choice-slider') then
+                xOffset = 5
+            elseif(fieldData.type == 'increment-text') then
+                xOffset = (fieldData.height or 20) + 1
+            end
+            
+            if(fieldData.type == 'range-slider') then
+                yOffsetNext = field.textbox:GetHeight() + (select(4, field.lowText:GetPoint()))
+            elseif(fieldData.type == 'choice-slider') then
+                yOffsetNext = field.currentText:GetHeight() + (select(4, field.lowText:GetPoint()))
+            end
+        elseif(ScootsLibOptions.insertFieldCallbacks[fieldData.type] ~= nil) then
+            addLabel, xOffset, yOffsetNext = ScootsLibOptions.insertFieldCallbacks[fieldData.type](fieldData, prevType)
         end
         
         return field, addLabel, xOffset, yOffsetNext
     end,
     ----
     ['processOptionCheckbox'] = function(pageData, fieldData)
-        return options.insertOptionsCheckbox({
+        return ScootsLibOptions.core.insertOptionsCheckbox({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['label'] = fieldData.label,
-            ['defaultState'] = options.get(fieldData.key),
+            ['defaultState'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['tooltip'] = fieldData.tooltip,
             ['tooltipExtra'] = fieldData.tooltipExtra,
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1032,16 +482,15 @@ options = {
         })
     end,
     ['processOptionRadio'] = function(pageData, fieldData)
-        return options.insertOptionsRadio({
+        return ScootsLibOptions.core.insertOptionsRadio({
             ['label'] = fieldData.label,
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
-            ['defaultValue'] = options.get(fieldData.key),
+            ['defaultValue'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['choices'] = fieldData.choices,
             ['nullValue'] = fieldData.nullValue,
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
                 
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1049,32 +498,19 @@ options = {
             end,
         })
     end,
-    ['processOptionReorderButtons'] = function(pageData, fieldData)
-        return options.insertOptionsReorderButtons({
-            ['key'] = pageData.key,
-            ['framename'] = fieldData.framename,
-            ['parent'] = pageData.parent,
-            ['label'] = fieldData.label,
-            ['size'] = fieldData.size,
-            ['callback'] = function()
-                core.prepareUpdate('_', fieldData.key)
-            end,
-        })
-    end,
     ['processOptionColour'] = function(pageData, fieldData)
-        return options.insertOptionsColourPicker({
+        return ScootsLibOptions.core.insertOptionsColourPicker({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['text'] = fieldData.text,
             ['tooltip'] = fieldData.tooltip,
             ['tooltipExtra'] = fieldData.tooltipExtra,
             ['colour'] = function()
-                return options.get(fieldData.key)
+                return pageData.parentAddon.optionGetCallback(fieldData.key)
             end,
             ['callback'] = function(self, r, g, b, a)
                 local value = {['r'] = r, ['g'] = g, ['b'] = b, ['a'] = a}
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1083,18 +519,17 @@ options = {
         })
     end,
     ['processOptionText'] = function(pageData, fieldData)
-        return options.insertOptionsTextField({
+        return ScootsLibOptions.core.insertOptionsTextField({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['label'] = fieldData.label,
             ['tooltip'] = fieldData.tooltip,
             ['tooltipExtra'] = fieldData.tooltipExtra,
-            ['default'] = options.get(fieldData.key),
+            ['default'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['numeric'] = fieldData.numeric,
             ['width'] = fieldData.width,
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1103,19 +538,18 @@ options = {
         })
     end,
     ['processOptionResetText'] = function(pageData, fieldData)
-        return options.insertOptionsResetTextField({
+        return ScootsLibOptions.core.insertOptionsResetTextField({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['label'] = fieldData.label,
             ['tooltip'] = fieldData.tooltip,
             ['tooltipExtra'] = fieldData.tooltipExtra,
-            ['default'] = options.get(fieldData.key),
+            ['default'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['resetText'] = fieldData.resetText,
             ['resetValue'] = fieldData.resetValue,
             ['width'] = fieldData.width,
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1124,7 +558,7 @@ options = {
         })
     end,
     ['processOptionIncrementText'] = function(pageData, fieldData)
-        return options.insertOptionsIncrementTextField({
+        return ScootsLibOptions.core.insertOptionsIncrementTextField({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['label'] = fieldData.label,
@@ -1138,10 +572,9 @@ options = {
             ['tooltipExtra'] = fieldData.tooltipExtra,
             ['resetText'] = fieldData.resetText,
             ['resetCallback'] = fieldData.resetCallback,
-            ['default'] = options.get(fieldData.key),
+            ['default'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1150,7 +583,7 @@ options = {
         })
     end,
     ['processOptionButton'] = function(pageData, fieldData)
-        return options.insertOptionsButton({
+        return ScootsLibOptions.core.insertOptionsButton({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['width'] = fieldData.width or 100,
@@ -1161,18 +594,17 @@ options = {
         })
     end,
     ['processOptionDropdown'] = function(pageData, fieldData)
-        return options.insertOptionsDropdown({
+        return ScootsLibOptions.core.insertOptionsDropdown({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['width'] = fieldData.width,
             ['choices'] = fieldData.choices,
-            ['defaultValue'] = options.get(fieldData.key),
+            ['defaultValue'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['label'] = fieldData.label,
             ['tooltip'] = fieldData.tooltip,
             ['tooltipExtra'] = fieldData.tooltipExtra,
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1181,12 +613,12 @@ options = {
         })
     end,
     ['processOptionRangeSlider'] = function(pageData, fieldData)
-        return options.insertOptionsRangeSlider({
+        return ScootsLibOptions.core.insertOptionsRangeSlider({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['width'] = fieldData.width,
             ['height'] = fieldData.height,
-            ['defaultValue'] = options.get(fieldData.key),
+            ['defaultValue'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['label'] = fieldData.label,
             ['increment'] = fieldData.increment,
             ['min'] = fieldData.min,
@@ -1198,9 +630,8 @@ options = {
             ['callback'] = function(self, value)
                 value = tonumber(value)
                 
-                if(value ~= options.get(fieldData.key)) then
-                    options.set(fieldData.key, value)
-                    core.prepareUpdate(pageData.key, fieldData.key, value)
+                if(value ~= (fieldData.key)) then
+                    pageData.optionChange(pageData.key, fieldData.key, value)
             
                     if(fieldData.callback) then
                         fieldData.callback(pageData.key, fieldData.key, value)
@@ -1210,20 +641,19 @@ options = {
         })
     end,
     ['processOptionChoiceSlider'] = function(pageData, fieldData)
-        return options.insertOptionsChoiceSlider({
+        return ScootsLibOptions.core.insertOptionsChoiceSlider({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['width'] = fieldData.width,
             ['height'] = fieldData.height,
             ['choices'] = fieldData.choices,
-            ['defaultValue'] = options.get(fieldData.key),
+            ['defaultValue'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['label'] = fieldData.label,
             ['tooltip'] = fieldData.tooltip,
             ['tooltipExtra'] = fieldData.tooltipExtra,
             ['callbackWhileDragging'] = fieldData.callbackWhileDragging,
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1232,14 +662,13 @@ options = {
         })
     end,
     ['processOptionCurrencyPicker'] = function(pageData, fieldData)
-        return options.insertOptionsCurrencyPicker({
+        return ScootsLibOptions.core.insertOptionsCurrencyPicker({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['label'] = fieldData.label,
-            ['selected'] = options.get(fieldData.key),
+            ['selected'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1248,14 +677,13 @@ options = {
         })
     end,
     ['processOptionItemPicker'] = function(pageData, fieldData)
-        return options.insertOptionsItemPicker({
+        return ScootsLibOptions.core.insertOptionsItemPicker({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['label'] = fieldData.label,
-            ['selected'] = options.get(fieldData.key),
+            ['selected'] = pageData.parentAddon.optionGetCallback(fieldData.key),
             ['callback'] = function(self, value)
-                options.set(fieldData.key, value)
-                core.prepareUpdate(pageData.key, fieldData.key, value)
+                pageData.parentAddon.optionChangeCallback(pageData.key, fieldData.key, value)
             
                 if(fieldData.callback) then
                     fieldData.callback(pageData.key, fieldData.key, value)
@@ -1264,14 +692,14 @@ options = {
         })
     end,
     ['processOptionGroup'] = function(pageData, fieldData)
-        return options.insertOptionsGroup({
+        return ScootsLibOptions.core.insertOptionsGroup({
             ['framename'] = fieldData.framename,
             ['parent'] = pageData.parent,
             ['label'] = fieldData.label,
             ['width'] = fieldData.width or 400,
             ['height'] = fieldData.height,
             ['shape'] = fieldData.shape,
-            ['callback'] = fieldData.callback
+            ['callback'] = fieldData.callback,
         })
     end,
     ----
@@ -1313,11 +741,10 @@ options = {
         end
         
         local height = 0
+        local fromTop = 10
+        local fromLeft = 10
         
         if(data.label) then
-            local fromLeft = 10
-            local fromTop = 10
-            
             if(data.shape == 'none') then
                 fromLeft = 0
                 fromTop = 0
@@ -1337,7 +764,9 @@ options = {
             height = height + (data.callback(group, group.label) or 0)
             group:SetHeight(height)
         elseif(data.height ~= nil) then
-            group:SetHeight(data.height)
+            group:SetHeight(data.height or (height + (fromTop * 2)))
+        else
+            group:SetHeight(height + fromTop)
         end
         
         return group
@@ -1406,7 +835,7 @@ options = {
             texture:SetTexCoord(0.14, 0.84, 0.17, 0.8)
         end
         
-        options.applyFieldTooltip({
+        ScootsLibOptions.core.applyFieldTooltip({
             ['field'] = checkbox,
             ['tooltip'] = data.tooltip,
             ['tooltipExtra'] = data.tooltipExtra,
@@ -1423,7 +852,7 @@ options = {
         return checkbox
     end,
     ['insertOptionsRadio'] = function(data)
-        local holder = options.insertOptionsGroup({
+        local holder = ScootsLibOptions.core.insertOptionsGroup({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
             ['shape'] = 'none',
@@ -1435,7 +864,7 @@ options = {
                 group.checkboxes = {}
                 
                 for index, choice in ipairs(data.choices) do
-                    local checkbox = options.insertOptionsCheckbox({
+                    local checkbox = ScootsLibOptions.core.insertOptionsCheckbox({
                         ['framename'] = data.framename .. '-Choice-' .. tostring(index),
                         ['parent'] = data.parent,
                         ['label'] = choice.name,
@@ -1521,7 +950,7 @@ options = {
         
         button:SetScript('OnClick', data.callback)
         
-        options.applyFieldTooltip({
+        ScootsLibOptions.core.applyFieldTooltip({
             ['field'] = button,
             ['tooltip'] = data.tooltip,
             ['tooltipExtra'] = data.tooltipExtra,
@@ -1530,124 +959,6 @@ options = {
         button.applyExternalValue = function() end
         
         return button
-    end,
-    ['insertOptionsReorderButtons'] = function(data)
-        local buttonDown, buttonUp
-    
-        data.reorderButtonsSetOrder = function(adjust)
-            local current = options.get(data.key .. '-order')
-            
-            if(adjust == 0) then
-                if(current == #core.barOrder) then
-                    buttonDown:Disable()
-                else
-                    buttonDown:Enable()
-                end
-            
-                if(current == 1) then
-                    buttonUp:Disable()
-                else
-                    buttonUp:Enable()
-                end
-                
-                return
-            end
-            
-            if(adjust == -1 and current == 1) then
-                return
-            end
-            
-            if(adjust == 1 and current == #core.barOrder) then
-                return
-            end
-            
-            local found = false
-            
-            local currentIndex
-            for index = 1, #core.barOrder do
-                if(core.barOrder[index].key == data.key) then
-                    currentIndex = index
-                    break
-                end
-            end
-            
-            core.barOrder[currentIndex].order = core.barOrder[currentIndex].order + adjust
-            options.set(core.barOrder[currentIndex].key .. '-order', core.barOrder[currentIndex].order)
-            
-            core.barOrder[currentIndex + adjust].order = core.barOrder[currentIndex + adjust].order - adjust
-            options.set(core.barOrder[currentIndex + adjust].key .. '-order', core.barOrder[currentIndex + adjust].order)
-            
-            table.sort(core.barOrder, function(barA, barB)
-                return barA.order < barB.order
-            end)
-            
-            data.callback()
-            
-            options.sortMenuLinks()
-            data.reorderButtonsSetOrder(0)
-        end
-        
-        --
-        
-        buttonDown = CreateFrame('Button', data.framename .. '-OrderUp', data.parent)
-        buttonDown:SetSize(data.size or 24, data.size or 24)
-        
-        buttonDown:SetNormalTexture('Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Up')
-        buttonDown:SetPushedTexture('Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Down')
-        buttonDown:SetDisabledTexture('Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Disabled')
-        buttonDown:SetHighlightTexture('Interface\\Buttons\\UI-Common-MouseHilight', 'ADD')
-        
-        if(data.label) then
-            buttonDown.label = buttonDown:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall')
-            buttonDown.label:SetPoint('BOTTOMLEFT', buttonDown, 'TOPLEFT', 0, 0)
-            buttonDown.label:SetText(data.label)
-        end
-        
-        buttonDown:SetScript('OnClick', function()
-            data.reorderButtonsSetOrder(1)
-        end)
-    
-        --
-        
-        buttonUp = CreateFrame('Button', data.framename .. '-OrderUp', data.parent)
-        buttonUp:SetSize(data.size or 24, data.size or 24)
-        buttonUp:SetPoint('LEFT', buttonDown, 'RIGHT', 5, 0)
-        
-        buttonUp:SetNormalTexture('Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Up')
-        buttonUp:SetPushedTexture('Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Down')
-        buttonUp:SetDisabledTexture('Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Disabled')
-        buttonUp:SetHighlightTexture('Interface\\Buttons\\UI-Common-MouseHilight', 'ADD')
-        
-        buttonUp:SetScript('OnClick', function()
-            data.reorderButtonsSetOrder(-1)
-        end)
-        
-        --
-        
-        for _, texture in pairs({
-            buttonDown:GetNormalTexture(),
-            buttonDown:GetPushedTexture(),
-            buttonDown:GetDisabledTexture(),
-            buttonDown:GetHighlightTexture(),
-            buttonUp:GetNormalTexture(),
-            buttonUp:GetPushedTexture(),
-            buttonUp:GetDisabledTexture(),
-            buttonUp:GetHighlightTexture(),
-        }) do
-            texture:ClearAllPoints()
-            texture:SetAllPoints()
-            texture:SetTexCoord(0.15, 0.85, 0.15, 0.85)
-        end
-        
-        data.parent:HookScript('OnShow', function()
-            data.reorderButtonsSetOrder(0)
-        end)
-        
-        data.reorderButtonsSetOrder(0)
-        
-        buttonDown.applyExternalValue = function() end
-        
-        return buttonDown
     end,
     ['insertOptionsTextField'] = function(data)
         local textbox = CreateFrame('EditBox', data.framename, data.parent)
@@ -1689,7 +1000,7 @@ options = {
             data.callback(self, textbox:GetText())
         end)
         
-        options.applyFieldTooltip({
+        ScootsLibOptions.core.applyFieldTooltip({
             ['field'] = textbox,
             ['tooltip'] = data.tooltip,
             ['tooltipExtra'] = data.tooltipExtra,
@@ -1724,7 +1035,7 @@ options = {
     ['insertOptionsResetTextField'] = function(data)
         data.height = data.height or 19
     
-        local textbox = options.insertOptionsTextField({
+        local textbox = ScootsLibOptions.core.insertOptionsTextField({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
             ['width'] = data.width,
@@ -1737,7 +1048,7 @@ options = {
             ['callback'] = data.callback
         })
         
-        local button = options.insertOptionsButton({
+        local button = ScootsLibOptions.core.insertOptionsButton({
             ['framename'] = data.framename .. '-Button',
             ['parent'] = data.parent,
             ['width'] = data.buttonWidth or 100,
@@ -1766,7 +1077,7 @@ options = {
         
         local stringFormat = '%.' .. tostring(decimals) .. 'f'
     
-        local textbox = options.insertOptionsTextField({
+        local textbox = ScootsLibOptions.core.insertOptionsTextField({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
             ['label'] = data.label,
@@ -1779,7 +1090,7 @@ options = {
         })
 
         if(data.label) then
-            textbox.label:SetPoint('BOTTOMLEFT', textbox, 'TOPLEFT', 0 - ((data.height or 19) + 1), 0)
+            textbox.label:SetPoint('BOTTOMLEFT', textbox, 'TOPLEFT', 0 - ((data.height or 19) - 2), 0)
         end
         
         textbox.currentValue = data.default or data.min or 0
@@ -1791,13 +1102,22 @@ options = {
         --
         
         local incrementDown = CreateFrame('Button', data.framename .. '-IncrementDown', data.parent)
-        incrementDown:SetSize(data.height, data.height)
-        incrementDown:SetPoint('RIGHT', textbox, 'LEFT', 1, 0)
+        incrementDown:SetSize(data.height - 4, data.height - 4)
+        incrementDown:SetPoint('RIGHT', textbox, 'LEFT', -2, 0)
         
         incrementDown:SetNormalTexture('Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up')
         incrementDown:SetPushedTexture('Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Down')
         incrementDown:SetDisabledTexture('Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Disabled')
         incrementDown:SetHighlightTexture('Interface\\Buttons\\UI-Common-MouseHilight', 'ADD')
+        
+        for _, texture in pairs({
+            incrementDown:GetNormalTexture(),
+            incrementDown:GetPushedTexture(),
+            incrementDown:GetHighlightTexture(),
+            incrementDown:GetDisabledTexture(),
+        }) do
+            texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        end
         
         incrementDown:SetScript('OnClick', function()
             textbox.currentValue = string.format(stringFormat, tonumber(textbox.currentValue) - data.increment)
@@ -1814,13 +1134,22 @@ options = {
         --
         
         local incrementUp = CreateFrame('Button', data.framename .. '-IncrementUp', data.parent)
-        incrementUp:SetSize(data.height, data.height)
-        incrementUp:SetPoint('LEFT', textbox, 'RIGHT', -1, 0)
+        incrementUp:SetSize(data.height - 4, data.height - 4)
+        incrementUp:SetPoint('LEFT', textbox, 'RIGHT', 2, 0)
         
         incrementUp:SetNormalTexture('Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up')
         incrementUp:SetPushedTexture('Interface\\Buttons\\UI-SpellbookIcon-NextPage-Down')
         incrementUp:SetDisabledTexture('Interface\\Buttons\\UI-SpellbookIcon-NextPage-Disabled')
         incrementUp:SetHighlightTexture('Interface\\Buttons\\UI-Common-MouseHilight', 'ADD')
+        
+        for _, texture in pairs({
+            incrementUp:GetNormalTexture(),
+            incrementUp:GetPushedTexture(),
+            incrementUp:GetHighlightTexture(),
+            incrementUp:GetDisabledTexture(),
+        }) do
+            texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        end
         
         incrementUp:SetScript('OnClick', function()
             textbox.currentValue = string.format(stringFormat, tonumber(textbox.currentValue) + data.increment)
@@ -1923,7 +1252,7 @@ options = {
         --
         
         if(data.resetText and data.resetCallback) then
-            local button = options.insertOptionsButton({
+            local button = ScootsLibOptions.core.insertOptionsButton({
                 ['framename'] = data.framename .. '-Reset',
                 ['parent'] = data.parent,
                 ['width'] = 100,
@@ -1955,7 +1284,7 @@ options = {
         local button
         local colour = data.colour()
         
-        button = options.insertOptionsButton({
+        button = ScootsLibOptions.core.insertOptionsButton({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
             ['width'] = data.width,
@@ -2055,7 +1384,7 @@ options = {
         button.previewBackground = button:CreateTexture(nil, 'ARTWORK')
         button.previewBackground:SetPoint('TOPLEFT', button.previewBorder, 'TOPLEFT', 1, -1)
         button.previewBackground:SetPoint('BOTTOMRIGHT', button.previewBorder, 'BOTTOMRIGHT', -1, 1)
-        button.previewBackground:SetTexture('Interface\\AddOns\\ScootsProgressBar\\Textures\\ColourPicker-Background', true)
+        button.previewBackground:SetTexture('Interface\\AddOns\\ScootsLibOptions\\Textures\\ColourPicker-Background', true)
         button.previewBackground:SetHorizTile(true)
         button.previewBackground:SetVertTile(true)
         
@@ -2161,7 +1490,7 @@ options = {
         
         dropdown.refresh()
         
-        options.applyFieldTooltip({
+        ScootsLibOptions.core.applyFieldTooltip({
             ['field'] = dropdown.button,
             ['tooltip'] = data.tooltip,
             ['tooltipExtra'] = data.tooltipExtra,
@@ -2239,7 +1568,7 @@ options = {
             end
         end)
         
-        options.applyFieldTooltip({
+        ScootsLibOptions.core.applyFieldTooltip({
             ['field'] = slider,
             ['tooltip'] = data.tooltip,
             ['tooltipExtra'] = data.tooltipExtra,
@@ -2261,7 +1590,7 @@ options = {
     ['insertOptionsRangeSlider'] = function(data)
         local slider, textbox
     
-        slider = options.insertOptionsSlider({
+        slider = ScootsLibOptions.core.insertOptionsSlider({
             ['framename'] = data.framename .. '-Slider',
             ['parent'] = data.parent,
             ['width'] = data.width,
@@ -2285,7 +1614,7 @@ options = {
             ['tooltipExtra'] = data.tooltipExtra,
         })
         
-        textbox = options.insertOptionsIncrementTextField({
+        textbox = ScootsLibOptions.core.insertOptionsIncrementTextField({
             ['framename'] = data.framename .. '-IncrementTextbox',
             ['parent'] = data.parent,
             ['width'] = 60,
@@ -2338,7 +1667,7 @@ options = {
             valueMap[choice.value] = index
         end
     
-        local slider = options.insertOptionsSlider({
+        local slider = ScootsLibOptions.core.insertOptionsSlider({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
             ['width'] = data.width,
@@ -2386,7 +1715,7 @@ options = {
     ['insertOptionsCurrencyPicker'] = function(data)
         data.width = data.width or 400
         
-        local picker = options.insertOptionsGroup({
+        local picker = ScootsLibOptions.core.insertOptionsGroup({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
             ['label'] = data.label,
@@ -2396,7 +1725,7 @@ options = {
                 local height = 10
                 group.lastValue = data.selected
                 
-                group.currentItem = options.insertOptionsClearableItem({
+                group.currentItem = ScootsLibOptions.core.insertOptionsClearableItem({
                     ['framename'] = data.framename .. '-CurrentItem',
                     ['parent'] = group,
                     ['clearText'] = 'Clear currency',
@@ -2421,7 +1750,7 @@ options = {
                 
                 --
             
-                group.listFrame = options.insertOptionsListFrame({
+                group.listFrame = ScootsLibOptions.core.insertOptionsListFrame({
                     ['framename'] = data.framename .. '-FauxScroller',
                     ['parent'] = group,
                     ['height'] = 100,
@@ -2539,7 +1868,7 @@ options = {
     ['insertOptionsItemPicker'] = function(data)
         data.width = data.width or 400
     
-        local picker = options.insertOptionsGroup({
+        local picker = ScootsLibOptions.core.insertOptionsGroup({
             ['framename'] = data.framename,
             ['parent'] = data.parent,
             ['width'] = data.width,
@@ -2572,7 +1901,7 @@ options = {
                 
                 local item = data.lookupItem(data.selected)
                 
-                currentItemDisplay = options.insertOptionsClearableItem({
+                currentItemDisplay = ScootsLibOptions.core.insertOptionsClearableItem({
                     ['framename'] = data.framename .. '-CurrentItem',
                     ['parent'] = group,
                     ['clearText'] = 'Clear item',
@@ -2603,7 +1932,7 @@ options = {
                 
                 --
                 
-                catcher = options.insertOptionsItemCatcher({
+                catcher = ScootsLibOptions.core.insertOptionsItemCatcher({
                     ['framename'] = data.framename .. '-ItemCatcher',
                     ['parent'] = group,
                     ['width'] = ((data.width - (40 + group.orText:GetWidth())) / 2) - 2,
@@ -2629,7 +1958,7 @@ options = {
                 
                 --
                 
-                textbox = options.insertOptionsTextField({
+                textbox = ScootsLibOptions.core.insertOptionsTextField({
                     ['framename'] = data.framename .. '-Textbox',
                     ['parent'] = group,
                     ['label'] = 'Enter item ID',
@@ -2785,7 +2114,7 @@ options = {
                 else
                     childFrame:SetAlpha(1)
                     
-                    local colour = lookup.rarityColours[item.rarity]
+                    local colour = ScootsLibOptions.rarityColours[item.rarity]
                     
                     childFrame.icon:SetTexture(item.texture)
                     childFrame.text:SetText(item.name)
@@ -2927,7 +2256,7 @@ options = {
                 
                 holder:SetWidth(0)
             else
-                local colour = lookup.rarityColours[item.rarity]
+                local colour = ScootsLibOptions.rarityColours[item.rarity]
                 
                 icon:SetTexture(item.texture)
                 name:SetText(item.name)
@@ -2973,7 +2302,7 @@ options = {
                 
                 if(data.tooltipExtra ~= nil) then
                     for _, line in ipairs(data.tooltipExtra) do
-                        options.attachTooltipDoubleLine(line[1], line[2])
+                        ScootsLibOptions.core.attachTooltipDoubleLine(line[1], line[2])
                     end
                 end
                 
@@ -2997,8 +2326,18 @@ options = {
     end,
 }
 
-for funcName, func in pairs(options) do
-    ScootsProgressBar.options[funcName] = func
-end
-
-options = ScootsProgressBar.options
+ScootsLibOptions.processOptionMap = {
+    ['checkbox'] = ScootsLibOptions.core.processOptionCheckbox,
+    ['radio'] = ScootsLibOptions.core.processOptionRadio,
+    ['colour'] = ScootsLibOptions.core.processOptionColour,
+    ['text'] = ScootsLibOptions.core.processOptionText,
+    ['reset-text'] = ScootsLibOptions.core.processOptionResetText,
+    ['increment-text'] = ScootsLibOptions.core.processOptionIncrementText,
+    ['button'] = ScootsLibOptions.core.processOptionButton,
+    ['dropdown'] = ScootsLibOptions.core.processOptionDropdown,
+    ['range-slider'] = ScootsLibOptions.core.processOptionRangeSlider,
+    ['choice-slider'] = ScootsLibOptions.core.processOptionChoiceSlider,
+    ['currency-picker'] = ScootsLibOptions.core.processOptionCurrencyPicker,
+    ['item-picker'] = ScootsLibOptions.core.processOptionItemPicker,
+    ['group'] = ScootsLibOptions.core.processOptionGroup,
+}

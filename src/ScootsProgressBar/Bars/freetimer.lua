@@ -207,7 +207,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-FreeTimer',
+    ['framename'] = 'FreeTimer',
+    ['title'] = core.definedBars[key],
     ['description'] = 'A timer you can set to whatever you like. (Re)start the timer by shift-left-clicking on the bar, stop the timer by shift-right-clicking on the bar.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {

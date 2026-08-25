@@ -84,7 +84,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-InstanceCap',
+    ['framename'] = 'InstanceCap',
+    ['title'] = core.definedBars[key],
     ['description'] = 'How many instances you have available to enter.',
     ['callback'] = options.defineStandardOptions,
 }

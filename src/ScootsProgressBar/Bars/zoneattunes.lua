@@ -111,7 +111,8 @@ options.defaultCategories[key] = {
 }
 
 options.optionPageDefinitions[key] = {
-    ['framename'] = 'ScootsProgressBar-Options-ZoneAttunes',
+    ['framename'] = 'ZoneAttunes',
+    ['title'] = core.definedBars[key],
     ['description'] = 'Progress towards attuning all items sourced from the current zone.',
     ['callback'] = function(data)
         local fields = options.defineStandardOptions(data, {
