@@ -27,6 +27,10 @@ Other noteworthy features:
 * Ability to seamlessly blend with default Blizzard interface.
 * Options profiles for per-character behaviour/visuals.
 
+## Dependencies ##
+
+- <a href="https://github.com/SynScoots/ScootsLibOptions">ScootsLibOptions</a>
+
 ## Installation ##
 
 Download this repository, then extract the `ScootsProgressBar` subdirectory from the `src` directory into your `World of Warcraft/Interface/AddOns` directory.

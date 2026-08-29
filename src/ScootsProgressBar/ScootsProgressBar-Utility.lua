@@ -117,6 +117,12 @@ utility = {
                 ['lf'] = attunesLF,
             }
         end
+        
+        -- Fix for when the player prestiges
+        if(CalculateAttunedCount() < storage.dayStartAttunes.account.exAffixes.base) then
+            storage.dayStartAttunes = nil
+            utility.setDayStartAttunes()
+        end
     end,
     ['getTimeForNextWintergrasp'] = function()
         local timeUntilNext = GetWintergraspWaitTime()
