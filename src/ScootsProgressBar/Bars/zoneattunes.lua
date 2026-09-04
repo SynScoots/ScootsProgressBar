@@ -38,29 +38,30 @@ core.updateFunctionMap[key] = function()
                 canAttune = true
             end
         end
-    
-        if(canAttune) then
-            ItemLocSetSourceSort(itemId, 3)
             
-            local isAttuned = GetItemAttuneForge(itemId) >= 0
+        if(canAttune and options.get('zoneattunes-min-chance') > 0) then
+            ItemLocSetSourceSort(itemId, 3)
             local sourceCount = ItemLocGetSourceCount(itemId) or 0
             
-            for index = 1, sourceCount do
-                local _, _, _, chance, _, _, zoneName = ItemLocGetSourceAt(itemId, index)
+            for itemIndex = 1, sourceCount do
+                local _, _, _, chance, _, _, zoneName = ItemLocGetSourceAt(itemId, itemIndex)
                 
                 if(chance < options.get('zoneattunes-min-chance')) then
+                    canAttune = false
                     break
                 end
                 
                 if(zoneName == currentZoneName) then
-                    itemCount = itemCount + 1
-                    
-                    if(isAttuned) then
-                        attunedCount = attunedCount + 1
-                    end
-                    
                     break
                 end
+            end
+        end
+    
+        if(canAttune) then
+            itemCount = itemCount + 1
+            
+            if(GetItemAttuneForge(itemId) >= 0) then
+                attunedCount = attunedCount + 1
             end
         end
     end
