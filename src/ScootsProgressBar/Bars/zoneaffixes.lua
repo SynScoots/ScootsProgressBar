@@ -27,55 +27,63 @@ core.updateFunctionMap[key] = function()
     local currentZoneName = Custom_GetZoneName(currentZoneId)
     
     for _, itemId in ipairs(ItemLocGetAllItemsInZone(-1, 0, 0, 1, 1)) do
-        local canAttune = false
-        
-        if(options.get('zoneaffixes-char-or-acc') == 'char') then
-            if(CanAttuneItemHelper(itemId) > 0) then
-                canAttune = true
-            end
-        else
-            if((IsAttunableBySomeone(itemId) or 0) ~= 0) then
-                canAttune = true
-            end
-        end
-    
-        if(canAttune) then
-            ItemLocSetSourceSort(itemId, 3)
+		local _, tags2 = GetItemTagsCustom(itemId)                    
+		if(tags2 and bit.band(tags2, 0x10) ~= 0) then
+            local canAttune = false
             
-            local isAttuned = GetItemAttuneForge(itemId) >= 0
-            local sourceCount = ItemLocGetSourceCount(itemId) or 0
-            
-            for itemIndex = 1, sourceCount do
-                local _, _, _, chance, _, _, zoneName = ItemLocGetSourceAt(itemId, itemIndex)
-                
-                if(chance < options.get('zoneaffixes-min-chance')) then
-                    break
+            if(options.get('zoneaffixes-char-or-acc') == 'char') then
+                if(CanAttuneItemHelper(itemId) > 0) then
+                    canAttune = true
                 end
+            else
+                if((IsAttunableBySomeone(itemId) or 0) ~= 0) then
+                    canAttune = true
+                end
+            end
+            
+            if(canAttune and options.get('zoneaffixes-min-chance') > 0) then
+                ItemLocSetSourceSort(itemId, 3)
+                local sourceCount = ItemLocGetSourceCount(itemId) or 0
                 
-                if(zoneName == currentZoneName) then
-                    local _, tags2 = GetItemTagsCustom(itemId)
+                for itemIndex = 1, sourceCount do
+                    local _, _, _, chance, _, _, zoneName = ItemLocGetSourceAt(itemId, itemIndex)
                     
-                    if(tags2 and bit.band(tags2, 0x10) ~= 0) then
-                        local poss1, poss2, done1, done2 = GetItemAffixMask(itemId)
-                        
-                        if(poss1 and (poss1 ~= 0 or poss2 ~= 0)) then
-                            for affixIndex = 1, 32 do
-                                local mask = bit.lshift(1, affixIndex - 1)
-                                
-                                if(bit.band(mask, poss1) ~= 0 or bit.band(mask, poss2) ~= 0) then
-                                    itemCount = itemCount + 1
-                                    
-                                    if(bit.band(mask, done1) ~= 0 or bit.band(mask, done2) ~= 0) then
-                                        attunedCount = attunedCount + 1
-                                    end
-                                end
-                            end
-                        end
+                    if(chance < options.get('zoneaffixes-min-chance')) then
+                        canAttune = false
+                        break
                     end
                     
-                    break
+                    if(zoneName == currentZoneName) then
+                        break
+                    end
                 end
             end
+        
+			if(canAttune) then
+				local poss1, poss2, done1, done2 = GetItemAffixMask(itemId)
+				
+				if(poss1 and (poss1 ~= 0 or poss2 ~= 0)) then
+					for affixIndex = 1, 32 do
+						local mask = bit.lshift(1, affixIndex - 1)
+						
+						if(bit.band(mask, poss1) ~= 0) then
+							itemCount = itemCount + 1
+							
+							if(bit.band(mask, done1) ~= 0) then
+								attunedCount = attunedCount + 1
+							end
+						end
+                        
+						if(bit.band(mask, poss2) ~= 0) then
+							itemCount = itemCount + 1
+							
+							if(bit.band(mask, done2) ~= 0) then
+								attunedCount = attunedCount + 1
+							end
+						end
+					end
+				end
+			end
         end
     end
     
